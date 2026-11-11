@@ -4,6 +4,9 @@
   "type": "commonjs",
   "description": "Smart Hospital Waste Management System - Waste Segregation, GPS Tracking, Role-Based Dashboards & Reporting",
   "main": "server.js",
+  "engines": {
+    "node": ">=20.17.0"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"
