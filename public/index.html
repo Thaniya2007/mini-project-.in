@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Hospital Waste Management System | Segregation & GPS Tracking</title>
+  
+  <!-- Tailwind CSS & Google Fonts -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet CSS for Map Preview -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  
+  <link rel="stylesheet" href="/css/style.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            heading: ['Plus Jakarta Sans', 'sans-serif']
+          },
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+              900: '#0c4a6e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-sky-500 selection:text-white">
+
+  <!-- Navigation Bar -->
+  <nav class="sticky top-0 z-50 glass-nav transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        
+        <!-- Logo -->
+        <a href="#home" class="flex items-center space-x-3 group">
+          <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-sky-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-sky-500/20 group-hover:scale-105 transition-transform">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+            </svg>
+          </div>
+          <div>
+            <span class="text-xl font-heading font-extrabold tracking-tight text-slate-900 group-hover:text-sky-600 transition-colors">
+              Smart Hospital
+            </span>
+            <span class="block text-xs font-semibold uppercase tracking-wider text-teal-600 -mt-1">
+              Waste Management System
+            </span>
+          </div>
+        </a>
+
+        <!-- Desktop Links -->
+        <div class="hidden md:flex items-center space-x-1 lg:space-x-4">
+          <a href="#home" class="px-3 py-2 text-sm font-medium text-slate-700 hover:text-sky-600 transition-colors">Home</a>
+          <a href="#about" class="px-3 py-2 text-sm font-medium text-slate-700 hover:text-sky-600 transition-colors">About Us</a>
+          <a href="#categories" class="px-3 py-2 text-sm font-medium text-slate-700 hover:text-sky-600 transition-colors">Waste Categories</a>
+          <a href="#workflow" class="px-3 py-2 text-sm font-medium text-slate-700 hover:text-sky-600 transition-colors">How It Works</a>
+          <a href="#gps-map" class="px-3 py-2 text-sm font-medium text-slate-700 hover:text-sky-600 transition-colors">GPS Tracking</a>
+          <a href="#portals" class="px-3 py-2 text-sm font-medium text-slate-700 hover:text-sky-600 transition-colors">Login Portals</a>
+        </div>
+
+        <!-- Auth Buttons -->
+        <div class="flex items-center space-x-3">
+          <button onclick="openLoginModal()" class="px-4 py-2 text-sm font-medium text-slate-700 hover:text-sky-600 border border-slate-300 rounded-lg hover:border-sky-500 transition-all">
+            Sign In
+          </button>
+          <button onclick="openRegisterModal()" class="px-4 py-2 text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-lg shadow-sm shadow-sky-600/30 transition-all">
+            Register
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section id="home" class="relative overflow-hidden pt-12 pb-24 lg:py-28 bg-gradient-to-b from-sky-50/60 via-white to-slate-50">
+    <div class="absolute inset-0 z-0 opacity-15 pointer-events-none" style="background-image: radial-gradient(#0284c7 1px, transparent 1px); background-size: 24px 24px;"></div>
+    
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        
+        <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
+          
+          <div class="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-sky-100 text-sky-800 text-xs font-semibold tracking-wide border border-sky-200">
+            <span class="w-2 h-2 rounded-full bg-sky-600 animate-ping"></span>
+            <span>Real-time Biomedical Waste Telemetry & GPS Tracking</span>
+          </div>
+
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-heading font-extrabold text-slate-900 tracking-tight leading-[1.15]">
+            Intelligent Biomedical <br class="hidden sm:block"/>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 via-teal-600 to-indigo-600">
+              Hospital Waste Segregation
+            </span> & Lifecycle Tracking
+          </h1>
+
+          <p class="text-lg text-slate-600 max-w-2xl leading-relaxed">
+            A comprehensive, digital healthcare platform classifying biomedical waste into 4 mandatory color-coded bins (Yellow, Red, White, Blue), recording collection GPS coordinates, live vehicle tracking, and automated treatment facility manifests.
+          </p>
+
+          <!-- Quick Action Buttons -->
+          <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
+            <a href="#portals" class="px-6 py-3.5 text-base font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-xl shadow-lg shadow-sky-600/25 hover:shadow-sky-600/40 hover:-translate-y-0.5 transition-all flex items-center space-x-2">
+              <span>Access Login Portals</span>
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            </a>
+            <a href="#categories" class="px-6 py-3.5 text-base font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl shadow-sm transition-all flex items-center space-x-2">
+              <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+              <span>Explore Color-Coded Bins</span>
+            </a>
+          </div>
+
+          <!-- Feature Metric Badges -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-slate-200/80">
+            <div>
+              <div class="text-2xl font-heading font-extrabold text-sky-600">4 Bins</div>
+              <div class="text-xs font-medium text-slate-500">Color-Coded Segregation</div>
+            </div>
+            <div>
+              <div class="text-2xl font-heading font-extrabold text-teal-600">8 Stages</div>
+              <div class="text-xs font-medium text-slate-500">End-to-End Workflow</div>
+            </div>
+            <div>
+              <div class="text-2xl font-heading font-extrabold text-indigo-600">100% GPS</div>
+              <div class="text-xs font-medium text-slate-500">Live Device Coordinates</div>
+            </div>
+            <div>
+              <div class="text-2xl font-heading font-extrabold text-emerald-600">CBWTF</div>
+              <div class="text-xs font-medium text-slate-500">Treatment Manifests</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Hero Graphic Cards -->
+        <div class="lg:col-span-5 relative">
+          <div class="bg-gradient-to-br from-white to-slate-50 p-6 rounded-3xl shadow-2xl border border-slate-200/80 relative z-10">
+            
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div class="flex items-center space-x-2.5">
+                <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                <div class="w-3 h-3 rounded-full bg-amber-400"></div>
+                <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-2">BioTrack Live Monitor</span>
+              </div>
+              <span class="px-2.5 py-1 text-xs font-medium bg-emerald-100 text-emerald-800 rounded-md">System Live</span>
+            </div>
+
+            <!-- Visual Bin Preview Grid -->
+            <div class="grid grid-cols-2 gap-3.5 my-5">
+              
+              <!-- Yellow Bin Card -->
+              <div class="p-3.5 rounded-xl waste-bin-yellow flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-yellow-800 uppercase">Yellow</span>
+                  <div class="w-4 h-4 rounded-full bg-yellow-500 flex items-center justify-center text-white text-[10px] font-bold">1</div>
+                </div>
+                <div class="my-2 text-center">
+                  <div class="w-10 h-12 mx-auto rounded-b-md bg-yellow-400 border-2 border-yellow-600 shadow-inner flex items-center justify-center text-white font-bold text-xs">
+                    BIO
+                  </div>
+                </div>
+                <div class="text-xs text-yellow-900 font-semibold truncate">Infectious / Pathological</div>
+                <div class="text-[11px] text-yellow-800/80">Incineration/Pyrolysis</div>
+              </div>
+
+              <!-- Red Bin Card -->
+              <div class="p-3.5 rounded-xl waste-bin-red flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-red-800 uppercase">Red</span>
+                  <div class="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center text-white text-[10px] font-bold">2</div>
+                </div>
+                <div class="my-2 text-center">
+                  <div class="w-10 h-12 mx-auto rounded-b-md bg-red-500 border-2 border-red-700 shadow-inner flex items-center justify-center text-white font-bold text-xs">
+                    REC
+                  </div>
+                </div>
+                <div class="text-xs text-red-900 font-semibold truncate">Contaminated Plastics</div>
+                <div class="text-[11px] text-red-800/80">Autoclave & Shredding</div>
+              </div>
+
+              <!-- White Bin Card -->
+              <div class="p-3.5 rounded-xl waste-bin-white flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-slate-800 uppercase">White Translucent</span>
+                  <div class="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-white text-[10px] font-bold">3</div>
+                </div>
+                <div class="my-2 text-center">
+                  <div class="w-10 h-12 mx-auto rounded-b-md bg-slate-100 border-2 border-slate-500 shadow-inner flex items-center justify-center text-slate-700 font-bold text-xs">
+                    SHARP
+                  </div>
+                </div>
+                <div class="text-xs text-slate-900 font-semibold truncate">Sharps & Needles</div>
+                <div class="text-[11px] text-slate-600">Puncture-Proof / Encaps.</div>
+              </div>
+
+              <!-- Blue Bin Card -->
+              <div class="p-3.5 rounded-xl waste-bin-blue flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-blue-800 uppercase">Blue</span>
+                  <div class="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-white text-[10px] font-bold">4</div>
+                </div>
+                <div class="my-2 text-center">
+                  <div class="w-10 h-12 mx-auto rounded-b-md bg-blue-500 border-2 border-blue-700 shadow-inner flex items-center justify-center text-white font-bold text-xs">
+                    GLAS
+                  </div>
+                </div>
+                <div class="text-xs text-blue-900 font-semibold truncate">Glassware & Implants</div>
+                <div class="text-[11px] text-blue-800/80">Disinfection / Recycling</div>
+              </div>
+
+            </div>
+
+            <!-- Municipal Waste Separation Alert -->
+            <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center space-x-3 text-xs text-emerald-900">
+              <div class="w-6 h-6 rounded-md bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 font-bold text-xs">
+                ✓
+              </div>
+              <div>
+                <strong>Municipal / General Waste Strict Separation:</strong> Non-biomedical kitchen, cardboard & office waste are segregated separately into Green & Black bins.
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Decorative Glow -->
+          <div class="absolute -top-6 -right-6 w-64 h-64 bg-sky-400/20 rounded-full blur-3xl pointer-events-none"></div>
+          <div class="absolute -bottom-6 -left-6 w-64 h-64 bg-teal-400/20 rounded-full blur-3xl pointer-events-none"></div>
+
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Section: Importance of Safe Hospital Waste Management -->
+  <section id="about" class="py-20 bg-white border-y border-slate-200/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-sky-600 mb-2">Hospital Safety & Public Health</h2>
+        <h3 class="text-3xl sm:text-4xl font-heading font-extrabold text-slate-900 tracking-tight">
+          Why Safe Hospital Waste Management Matters
+        </h3>
+        <p class="mt-4 text-base text-slate-600 leading-relaxed">
+          Biomedical waste contains potentially hazardous pathogens and chemical agents. Unscientific segregation and improper disposal pose severe biological risks to healthcare personnel, sanitation workers, patients, and the community.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        
+        <!-- Card 1 -->
+        <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-sky-300 hover:shadow-lg hover:-translate-y-1 transition-all group">
+          <div class="w-12 h-12 rounded-xl bg-red-100 text-red-600 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          </div>
+          <h4 class="text-lg font-bold text-slate-900 mb-2">Infection & Disease Control</h4>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Eliminates hospital-acquired infections (HAI) and prevents the spread of viral pathogens including Hepatitis B, Hepatitis C, HIV, and multidrug-resistant bacteria.
+          </p>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-sky-300 hover:shadow-lg hover:-translate-y-1 transition-all group">
+          <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"></path></svg>
+          </div>
+          <h4 class="text-lg font-bold text-slate-900 mb-2">Needle-Stick Injury Prevention</h4>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Translucent, puncture-proof sharps bins protect nurses, doctors, and sanitation handlers from accidental needle-sticks, surgical cuts, and contamination.
+          </p>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-sky-300 hover:shadow-lg hover:-translate-y-1 transition-all group">
+          <div class="w-12 h-12 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </div>
+          <h4 class="text-lg font-bold text-slate-900 mb-2">Environmental Protection</h4>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Prevents soil, groundwater, and municipal water contamination. Non-chlorinated bags avoid toxic dioxin and furan emission during high-temp treatment.
+          </p>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-sky-300 hover:shadow-lg hover:-translate-y-1 transition-all group">
+          <div class="w-12 h-12 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+          </div>
+          <h4 class="text-lg font-bold text-slate-900 mb-2">Regulatory Compliance</h4>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Complies with Central Pollution Control Board (CPCB) and WHO Bio-Medical Waste Management Rules with digital barcodes, manifests, and tamper-proof GPS trails.
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Section: Waste Segregation Module (4 Colour-Coded Categories) -->
+  <section id="categories" class="py-20 bg-slate-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-sky-600 mb-2">Biomedical Classification</h2>
+        <h3 class="text-3xl sm:text-4xl font-heading font-extrabold text-slate-900 tracking-tight">
+          Four Colour-Coded Waste Segregation Bins
+        </h3>
+        <p class="mt-4 text-base text-slate-600 leading-relaxed">
+          Healthcare staff must segregate waste at the point of generation. Each color corresponds to specific treatment and disposal protocols.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        
+        <!-- Category 1: YELLOW -->
+        <div class="waste-bin-yellow p-8 rounded-3xl shadow-sm transition-all hover:shadow-xl relative overflow-hidden flex flex-col justify-between">
+          <div>
+            <!-- Picture for Yellow Waste -->
+            <div class="w-full h-48 rounded-2xl overflow-hidden mb-5 border border-yellow-400 shadow-sm relative group">
+              <img src="/images/waste/yellow-waste.jpg" alt="Yellow Infectious Biomedical Waste" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+              <span class="absolute top-3 left-3 bg-yellow-500/90 backdrop-blur-sm text-yellow-950 px-2.5 py-1 rounded-md text-[11px] font-bold shadow">
+                Infectious Bio-Waste Photo
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center space-x-3">
+                <div class="bin-illustration bg-yellow-400 border-2 border-yellow-600">
+                  <div class="bin-lid bg-yellow-500 border border-yellow-600"></div>
+                  <span class="text-xs font-extrabold text-yellow-900">YELLOW</span>
+                </div>
+                <div>
+                  <h4 class="text-2xl font-heading font-extrabold text-yellow-950">1. Yellow Bin</h4>
+                  <span class="text-xs font-bold uppercase tracking-wider text-yellow-800">Infectious &amp; Pathological Waste</span>
+                </div>
+              </div>
+              <span class="px-3 py-1 bg-yellow-200 text-yellow-900 rounded-full text-xs font-bold">Incineration</span>
+            </div>
+
+            <p class="text-sm text-yellow-900/90 mb-5 leading-relaxed">
+              Highly contaminated waste, anatomical items, tissues, blood-saturated dressings, laboratory cultures, and expired drugs.
+            </p>
+
+            <div class="space-y-3 bg-white/70 p-4 rounded-xl border border-yellow-300">
+              <div class="text-xs font-bold text-yellow-950 uppercase tracking-wide">Included Examples:</div>
+              <ul class="text-xs text-yellow-900 space-y-1.5 list-disc list-inside">
+                <li>Human anatomical waste (tissues, organs, body parts, placenta)</li>
+                <li>Blood-contaminated cotton, gauze, dressings, plaster casts</li>
+                <li>Expired medicines, cytotoxic pharmaceuticals, discard vaccines</li>
+                <li>Microbiology, biotechnology & laboratory culture specimens</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-yellow-300/80 flex items-center justify-between text-xs">
+            <span class="font-semibold text-yellow-900">Rule: Non-chlorinated yellow plastic bags</span>
+            <span class="font-bold text-yellow-800">CBWTF Incinerator / Pyrolysis</span>
+          </div>
+        </div>
+
+        <!-- Category 2: RED -->
+        <div class="waste-bin-red p-8 rounded-3xl shadow-sm transition-all hover:shadow-xl relative overflow-hidden flex flex-col justify-between">
+          <div>
+            <!-- Picture for Red Waste -->
+            <div class="w-full h-48 rounded-2xl overflow-hidden mb-5 border border-red-400 shadow-sm relative group">
+              <img src="/images/waste/red-waste.jpg" alt="Red Contaminated Recyclable Plastics" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+              <span class="absolute top-3 left-3 bg-red-600/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-[11px] font-bold shadow">
+                Contaminated Plastics Photo
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center space-x-3">
+                <div class="bin-illustration bg-red-500 border-2 border-red-700">
+                  <div class="bin-lid bg-red-600 border border-red-700"></div>
+                  <span class="text-xs font-extrabold text-white">RED</span>
+                </div>
+                <div>
+                  <h4 class="text-2xl font-heading font-extrabold text-red-950">2. Red Bin</h4>
+                  <span class="text-xs font-bold uppercase tracking-wider text-red-800">Contaminated Recyclable Plastics</span>
+                </div>
+              </div>
+              <span class="px-3 py-1 bg-red-200 text-red-900 rounded-full text-xs font-bold">Autoclave &amp; Shred</span>
+            </div>
+
+            <p class="text-sm text-red-900/90 mb-5 leading-relaxed">
+              Recyclable plastic consumables contaminated with patient bodily fluids, requiring steam sterilization before shredding.
+            </p>
+
+            <div class="space-y-3 bg-white/70 p-4 rounded-xl border border-red-300">
+              <div class="text-xs font-bold text-red-950 uppercase tracking-wide">Included Examples:</div>
+              <ul class="text-xs text-red-900 space-y-1.5 list-disc list-inside">
+                <li>Contaminated disposable examination & surgical gloves</li>
+                <li>Intravenous (IV) fluid sets, tubing, and bottles</li>
+                <li>Urinary bags, drainage tubes, suction catheters</li>
+                <li>Syringes without needles, vacutainers, dialysis tubing</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-red-300/80 flex items-center justify-between text-xs">
+            <span class="font-semibold text-red-900">Rule: Red non-chlorinated plastic bags</span>
+            <span class="font-bold text-red-800">Autoclaving / Authorized Recyclers</span>
+          </div>
+        </div>
+
+        <!-- Category 3: WHITE TRANSLUCENT -->
+        <div class="waste-bin-white p-8 rounded-3xl shadow-sm transition-all hover:shadow-xl relative overflow-hidden flex flex-col justify-between">
+          <div>
+            <!-- Picture for White Sharps -->
+            <div class="w-full h-48 rounded-2xl overflow-hidden mb-5 border border-slate-300 shadow-sm relative group">
+              <img src="/images/waste/white-waste.jpg" alt="White Sharps Waste Needles Scalpels" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+              <span class="absolute top-3 left-3 bg-slate-800/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-[11px] font-bold shadow">
+                Sharps &amp; Needles Photo
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center space-x-3">
+                <div class="bin-illustration bg-slate-100 border-2 border-slate-500">
+                  <div class="bin-lid bg-slate-200 border border-slate-500"></div>
+                  <span class="text-xs font-extrabold text-slate-800">WHITE</span>
+                </div>
+                <div>
+                  <h4 class="text-2xl font-heading font-extrabold text-slate-900">3. White Translucent Bin</h4>
+                  <span class="text-xs font-bold uppercase tracking-wider text-slate-600">Sharps &amp; Contaminated Metals</span>
+                </div>
+              </div>
+              <span class="px-3 py-1 bg-slate-200 text-slate-800 rounded-full text-xs font-bold">Puncture-Proof</span>
+            </div>
+
+            <p class="text-sm text-slate-700 mb-5 leading-relaxed">
+              Cut or puncture hazard objects capable of transmitting bloodborne infections. Strictly stored in rigid, puncture-proof containers.
+            </p>
+
+            <div class="space-y-3 bg-white/80 p-4 rounded-xl border border-slate-300">
+              <div class="text-xs font-bold text-slate-900 uppercase tracking-wide">Included Examples:</div>
+              <ul class="text-xs text-slate-700 space-y-1.5 list-disc list-inside">
+                <li>Hypodermic needles, scalpels, surgical disposable blades</li>
+                <li>Suture needles, lancets, biopsy needles, trocars</li>
+                <li>Contaminated sharp stainless steel instruments</li>
+                <li>Broken contaminated glass ampoule tips with sharp edges</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-slate-300 flex items-center justify-between text-xs">
+            <span class="font-semibold text-slate-800">Rule: Never recap or bend needles</span>
+            <span class="font-bold text-slate-700">Autoclaving & Metal Encapsulation</span>
+          </div>
+        </div>
+
+        <!-- Category 4: BLUE -->
+        <div class="waste-bin-blue p-8 rounded-3xl shadow-sm transition-all hover:shadow-xl relative overflow-hidden flex flex-col justify-between">
+          <div>
+            <!-- Picture for Blue Glassware -->
+            <div class="w-full h-48 rounded-2xl overflow-hidden mb-5 border border-blue-400 shadow-sm relative group">
+              <img src="/images/waste/blue-waste.jpg" alt="Blue Glassware and Metallic Implants" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+              <span class="absolute top-3 left-3 bg-blue-600/90 backdrop-blur-sm text-white px-2.5 py-1 rounded-md text-[11px] font-bold shadow">
+                Glassware &amp; Implants Photo
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center space-x-3">
+                <div class="bin-illustration bg-blue-500 border-2 border-blue-700">
+                  <div class="bin-lid bg-blue-600 border border-blue-700"></div>
+                  <span class="text-xs font-extrabold text-white">BLUE</span>
+                </div>
+                <div>
+                  <h4 class="text-2xl font-heading font-extrabold text-blue-950">4. Blue Bin / Box</h4>
+                  <span class="text-xs font-bold uppercase tracking-wider text-blue-800">Glassware &amp; Metallic Implants</span>
+                </div>
+              </div>
+              <span class="px-3 py-1 bg-blue-200 text-blue-900 rounded-full text-xs font-bold">Disinfection</span>
+            </div>
+
+            <p class="text-sm text-blue-900/90 mb-5 leading-relaxed">
+              Glass containers, medicine vials, and metallic orthopedic implants that require chemical disinfection before secondary recycling.
+            </p>
+
+            <div class="space-y-3 bg-white/70 p-4 rounded-xl border border-blue-300">
+              <div class="text-xs font-bold text-blue-950 uppercase tracking-wide">Included Examples:</div>
+              <ul class="text-xs text-blue-900 space-y-1.5 list-disc list-inside">
+                <li>Medicine glass bottles, ampoules, vials (excluding cytotoxic)</li>
+                <li>Glass slides, microscope cover slips, specimen test tubes</li>
+                <li>Metallic orthopedic implants, pins, screws, plates</li>
+                <li>Dental metallic prosthetics & contaminated alloy fragments</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-blue-300/80 flex items-center justify-between text-xs">
+            <span class="font-semibold text-blue-900">Rule: Puncture-resistant cardboard box / blue container</span>
+            <span class="font-bold text-blue-800">Sodium Hypochlorite Treatment</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- General Municipal Waste Notice -->
+      <div class="mt-8 p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 font-extrabold text-xl">
+            ♻️
+          </div>
+          <div>
+            <h5 class="text-base font-bold text-slate-900">Separate General Municipal Waste (Black / Green Bins)</h5>
+            <p class="text-xs text-slate-600 mt-0.5">
+              Food waste, fruit peels, leftover meals (Green Bin) and dry paper, office stationery, clean packaging carton (Black Bin) must NEVER be mixed with biomedical waste.
+            </p>
+          </div>
+        </div>
+        <span class="px-4 py-2 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold whitespace-nowrap">
+          Strict Separation Enforced
+        </span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Section: 8-Stage Collection Workflow -->
+  <section id="workflow" class="py-20 bg-white border-y border-slate-200/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-sky-600 mb-2">Digital Chain of Custody</h2>
+        <h3 class="text-3xl sm:text-4xl font-heading font-extrabold text-slate-900 tracking-tight">
+          Eight-Stage Collection Lifecycle
+        </h3>
+        <p class="mt-4 text-base text-slate-600 leading-relaxed">
+          From hospital ward pickup to the Central Bio-Medical Waste Treatment Facility (CBWTF), every step is digitally stamped, photograph-verified, and tracked via GPS coordinates.
+        </p>
+      </div>
+
+      <!-- 8-Step Timeline Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        <!-- Step 1 -->
+        <div class="p-6 rounded-2xl bg-sky-50/50 border border-sky-100 relative">
+          <div class="flex items-center justify-between mb-3">
+            <span class="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-sm">1</span>
+            <span class="text-xs font-bold text-sky-600 uppercase">Hospital Staff</span>
+          </div>
+          <h4 class="text-base font-bold text-slate-900 mb-1">Request Submitted</h4>
+          <p class="text-xs text-slate-600">
+            <strong>Photo Verification First:</strong> Clinical staff uploads or captures a waste photograph first. The visual system verifies the items and unlocks the appropriate colour-coded bin for safe segregation.
+          </p>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="p-6 rounded-2xl bg-indigo-50/50 border border-indigo-100 relative">
+          <div class="flex items-center justify-between mb-3">
+            <span class="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">2</span>
+            <span class="text-xs font-bold text-indigo-600 uppercase">Dispatch System</span>
+          </div>
+          <h4 class="text-base font-bold text-slate-900 mb-1">Request Accepted</h4>
+          <p class="text-xs text-slate-600">
+            System dispatch acknowledges the collection request and broadcasts pickup alert to active bio-waste collectors in the hospital zone.
+          </p>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="p-6 rounded-2xl bg-purple-50/50 border border-purple-100 relative">
+          <div class="flex items-center justify-between mb-3">
+            <span class="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-sm">3</span>
+            <span class="text-xs font-bold text-purple-600 uppercase">Collector</span>
+          </div>
+          <h4 class="text-base font-bold text-slate-900 mb-1">Collector Assigned</h4>
+          <p class="text-xs text-slate-600">
+            Authorized waste collector accepts the pickup job. Assigned vehicle number and collector contact details appear on the department dashboard.
+          </p>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="p-6 rounded-2xl bg-amber-50/50 border border-amber-100 relative">
+          <div class="flex items-center justify-between mb-3">
+            <span class="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-sm">4</span>
+            <span class="text-xs font-bold text-amber-600 uppercase">In Transit</span>
+          </div>
+          <h4 class="text-base font-bold text-slate-900 mb-1">Collection in Progress</h4>
+          <p class="text-xs text-slate-600">
+            Collector reaches the department floor with specialized safety cart, verifies color code tag, and initiates barcode scan.
+          </p>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="p-6 rounded-2xl bg-emerald-50/50 border border-emerald-100 relative">
+          <div class="flex items-center justify-between mb-3">
+            <span class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm">5</span>
+            <span class="text-xs font-bold text-emerald-600 uppercase">Verification</span>
+          </div>
+          <h4 class="text-base font-bold text-slate-900 mb-1">Waste Collected</h4>
+          <p class="text-xs text-slate-600">
+            Collector measures verified weight on calibrated scale, uploads photographic proof of collection, and seals the container.
+          </p>
+        </div>
+
+        <!-- Step 6 -->
+        <div class="p-6 rounded-2xl bg-cyan-50/50 border border-cyan-100 relative">
+          <div class="flex items-center justify-between mb-3">
+            <span class="w-8 h-8 rounded-full bg-cyan-600 text-white flex items-center justify-center font-bold text-sm">6</span>
+            <span class="text-xs font-bold text-cyan-600 uppercase">GPS Vehicle</span>
+          </div>
+          <h4 class="text-base font-bold text-slate-900 mb-1">Transported</h4>
+          <p class="text-xs text-slate-600">
+            Bio-waste is loaded into specialized GPS-monitored vehicle. Telemetry streams live transit coordinates on the monitoring map.
+          </p>
+        </div>
+
+        <!-- Step 7 -->
+        <div class="p-6 rounded-2xl bg-violet-50/50 border border-violet-100 relative">
+          <div class="flex items-center justify-between mb-3">
+            <span class="w-8 h-8 rounded-full bg-violet-600 text-white flex items-center justify-center font-bold text-sm">7</span>
+            <span class="text-xs font-bold text-violet-600 uppercase">CBWTF Handover</span>
+          </div>
+          <h4 class="text-base font-bold text-slate-900 mb-1">Handed Over to Facility</h4>
+          <p class="text-xs text-slate-600">
+            Waste delivered to authorized CBWTF facility. Facility supervisor verifies electronic manifest and logs physical arrival.
+          </p>
+        </div>
+
+        <!-- Step 8 -->
+        <div class="p-6 rounded-2xl bg-green-50/50 border border-green-200 relative">
+          <div class="flex items-center justify-between mb-3">
+            <span class="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-sm">8</span>
+            <span class="text-xs font-bold text-green-700 uppercase">Certified</span>
+          </div>
+          <h4 class="text-base font-bold text-slate-900 mb-1">Completed</h4>
+          <p class="text-xs text-slate-600">
+            Final treatment certificate generated. Audit logs, Excel and PDF manifests are permanently sealed for pollution control inspection.
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Section: GPS Tracking System Preview -->
+  <section id="gps-map" class="py-20 bg-slate-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        
+        <div class="lg:col-span-5 space-y-6">
+          <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>Accurate Browser & Device Geolocation</span>
+          </div>
+
+          <h3 class="text-3xl sm:text-4xl font-heading font-extrabold text-slate-900 tracking-tight">
+            Live GPS Telemetry & Waste Route Navigation
+          </h3>
+
+          <p class="text-base text-slate-600 leading-relaxed">
+            Eliminates illegal dumping and delayed biohazard exposure. Our map system records accurate device GPS coordinates upon collection request submission, streams collector transit routes, and verifies arrival at authorized disposal hubs.
+          </p>
+
+          <div class="space-y-3">
+            <div class="flex items-start space-x-3">
+              <div class="w-6 h-6 rounded-md bg-sky-100 text-sky-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
+              </div>
+              <div class="text-sm">
+                <strong class="text-slate-800">Exact Ward & Room Coordinates:</strong> Captured instantly using device HTML5 Geolocation with user permission.
+              </div>
+            </div>
+
+            <div class="flex items-start space-x-3">
+              <div class="w-6 h-6 rounded-md bg-teal-100 text-teal-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+              </div>
+              <div class="text-sm">
+                <strong class="text-slate-800">Collector Navigation & Route Lines:</strong> Polyline routes from department collection point to the authorized CBWTF treatment plant.
+              </div>
+            </div>
+
+            <div class="flex items-start space-x-3">
+              <div class="w-6 h-6 rounded-md bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              </div>
+              <div class="text-sm">
+                <strong class="text-slate-800">Full Audit History:</strong> Date, time, latitude, longitude, and collector identity stored permanently for statutory inspection.
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Interactive Map Container -->
+        <div class="lg:col-span-7">
+          <div class="bg-white p-4 rounded-3xl shadow-xl border border-slate-200">
+            <div class="flex items-center justify-between pb-3 px-2 border-b border-slate-100 text-xs">
+              <div class="flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="font-bold text-slate-800">Live Hospital Campus & Facility Map Preview</span>
+              </div>
+              <span class="text-slate-500">OpenStreetMap & Leaflet.js</span>
+            </div>
+            
+            <div id="home-preview-map" class="w-full h-[420px] rounded-2xl mt-3 z-10"></div>
+
+            <div class="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-slate-100 text-[11px] text-center">
+              <div class="flex items-center justify-center space-x-1.5 text-slate-600">
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                <span>Hospital Wards</span>
+              </div>
+              <div class="flex items-center justify-center space-x-1.5 text-slate-600">
+                <span class="w-2.5 h-2.5 rounded-full bg-sky-600"></span>
+                <span>Collector Vans</span>
+              </div>
+              <div class="flex items-center justify-center space-x-1.5 text-slate-600">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                <span>CBWTF Facility</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Section: Three Prominent Login Cards -->
+  <section id="portals" class="py-20 bg-gradient-to-b from-white to-sky-50/50 border-t border-slate-200/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-sky-600 mb-2">Role-Based Access Portals</h2>
+        <h3 class="text-3xl sm:text-4xl font-heading font-extrabold text-slate-900 tracking-tight">
+          Select Your Healthcare Portal
+        </h3>
+        <p class="mt-4 text-base text-slate-600 leading-relaxed">
+          Secure, authenticated role-based dashboards tailored for hospital clinical staff, waste collection personnel, and health facility administrators.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        
+        <!-- Portal Card 1: Hospital Staff -->
+        <div class="p-8 rounded-3xl bg-white border border-slate-200 shadow-md hover:shadow-2xl hover:-translate-y-1.5 transition-all flex flex-col justify-between group">
+          <div>
+            <div class="w-14 h-14 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center mb-6 group-hover:bg-sky-600 group-hover:text-white transition-colors">
+              <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+            </div>
+
+            <span class="text-xs font-bold uppercase tracking-wider text-sky-600">Doctor / Nurse / Technician</span>
+            <h4 class="text-2xl font-heading font-extrabold text-slate-900 mt-1 mb-3">Hospital Staff</h4>
+            
+            <p class="text-sm text-slate-600 leading-relaxed mb-6">
+              Log new waste collection requests, capture room coordinates via device GPS, upload waste photographs, and track real-time collection status.
+            </p>
+
+            <ul class="space-y-2 text-xs text-slate-600 mb-6">
+              <li class="flex items-center space-x-2">
+                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span>Select from 4 color-coded waste bins</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span>Camera photo capture & weight entry</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span>Previous collection request history</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="space-y-2.5 pt-4 border-t border-slate-100">
+            <button onclick="triggerDemoLogin('staff')" class="w-full py-3 px-4 rounded-xl text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 shadow-md shadow-sky-600/20 transition-all flex items-center justify-center space-x-2">
+              <span>Instant Staff Sign In (Demo)</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            </button>
+            <button onclick="openLoginModal('staff')" class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-700 hover:text-sky-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all">
+              Sign In with Staff ID
+            </button>
+          </div>
+        </div>
+
+        <!-- Portal Card 2: Waste Collector -->
+        <div class="p-8 rounded-3xl bg-white border border-slate-200 shadow-md hover:shadow-2xl hover:-translate-y-1.5 transition-all flex flex-col justify-between group">
+          <div>
+            <div class="w-14 h-14 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center mb-6 group-hover:bg-teal-600 group-hover:text-white transition-colors">
+              <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+            </div>
+
+            <span class="text-xs font-bold uppercase tracking-wider text-teal-600">Bio-Hazard Handler / Driver</span>
+            <h4 class="text-2xl font-heading font-extrabold text-slate-900 mt-1 mb-3">Waste Collector</h4>
+            
+            <p class="text-sm text-slate-600 leading-relaxed mb-6">
+              View pending hospital pickups, accept requests, navigate via GPS, upload collection proof photographs, verify weights, and log CBWTF facility handover.
+            </p>
+
+            <ul class="space-y-2 text-xs text-slate-600 mb-6">
+              <li class="flex items-center space-x-2">
+                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span>Accept or reject new pickup requests</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span>GPS navigation & live route tracking</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span>Proof photo upload & weight logging</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="space-y-2.5 pt-4 border-t border-slate-100">
+            <button onclick="triggerDemoLogin('collector')" class="w-full py-3 px-4 rounded-xl text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 shadow-md shadow-teal-600/20 transition-all flex items-center justify-center space-x-2">
+              <span>Instant Collector Sign In (Demo)</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            </button>
+            <button onclick="openLoginModal('collector')" class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-700 hover:text-teal-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all">
+              Sign In with Collector ID
+            </button>
+          </div>
+        </div>
+
+        <!-- Portal Card 3: Administrator -->
+        <div class="p-8 rounded-3xl bg-white border border-slate-200 shadow-md hover:shadow-2xl hover:-translate-y-1.5 transition-all flex flex-col justify-between group">
+          <div>
+            <div class="w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+              <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+            </div>
+
+            <span class="text-xs font-bold uppercase tracking-wider text-indigo-600">Medical Superintendent & Officer</span>
+            <h4 class="text-2xl font-heading font-extrabold text-slate-900 mt-1 mb-3">Administrator</h4>
+            
+            <p class="text-sm text-slate-600 leading-relaxed mb-6">
+              Complete oversight of hospital biomedical waste operations. Monitor live GPS vehicle telemetry, manage staff/collectors, view analytics, and export PDF/Excel reports.
+            </p>
+
+            <ul class="space-y-2 text-xs text-slate-600 mb-6">
+              <li class="flex items-center space-x-2">
+                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span>Live GPS Map with all pickup locations</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span>Category & department statistics charts</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span>Downloadable PDF manifests & Excel reports</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="space-y-2.5 pt-4 border-t border-slate-100">
+            <button onclick="triggerDemoLogin('admin')" class="w-full py-3 px-4 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition-all flex items-center justify-center space-x-2">
+              <span>Instant Admin Sign In (Demo)</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            </button>
+            <button onclick="openLoginModal('admin')" class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold text-slate-700 hover:text-indigo-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all">
+              Sign In with Admin Credentials
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl relative border border-slate-200 animate-in fade-in zoom-in duration-200">
+      
+      <button onclick="closeLoginModal()" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 mx-auto rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center mb-3">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+        </div>
+        <h3 class="text-2xl font-heading font-extrabold text-slate-900">Hospital Portal Sign In</h3>
+        <p class="text-xs text-slate-500 mt-1">Select your role and enter authorized credentials</p>
+      </div>
+
+      <!-- Role Tabs -->
+      <div class="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl mb-5 text-xs font-semibold">
+        <button id="tab-staff" onclick="selectLoginRole('staff')" class="py-2 rounded-lg text-slate-700 bg-white shadow-sm transition-all">Staff</button>
+        <button id="tab-collector" onclick="selectLoginRole('collector')" class="py-2 rounded-lg text-slate-600 hover:text-slate-900 transition-all">Collector</button>
+        <button id="tab-admin" onclick="selectLoginRole('admin')" class="py-2 rounded-lg text-slate-600 hover:text-slate-900 transition-all">Admin</button>
+      </div>
+
+      <form id="login-form" onsubmit="handleLoginSubmit(event)" class="space-y-4">
+        <input type="hidden" id="login-role" value="staff">
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Email or Username</label>
+          <input type="text" id="login-identifier" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm" placeholder="staff@hospital.com">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+          <input type="password" id="login-password" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm" placeholder="••••••••">
+        </div>
+
+        <button type="submit" id="login-submit-btn" class="w-full py-3 px-4 rounded-xl text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 shadow-md shadow-sky-600/25 transition-all">
+          Sign In to Dashboard
+        </button>
+
+        <div class="text-center pt-2">
+          <button type="button" onclick="autoFillDemoCredentials()" class="text-xs font-medium text-sky-600 hover:underline">
+            Auto-fill Default Demo Credentials
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- Register Modal -->
+  <div id="register-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-8 shadow-2xl relative border border-slate-200 max-h-[90vh] overflow-y-auto">
+      
+      <button onclick="closeRegisterModal()" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+
+      <div class="text-center mb-6">
+        <h3 class="text-2xl font-heading font-extrabold text-slate-900">Hospital Account Registration</h3>
+        <p class="text-xs text-slate-500 mt-1">Register new clinical staff or waste collector account</p>
+      </div>
+
+      <form id="register-form" onsubmit="handleRegisterSubmit(event)" class="space-y-4">
+        
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Select Role</label>
+          <select id="reg-role" onchange="toggleRegisterFields(this.value)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm">
+            <option value="staff">Hospital Staff (Doctor / Nurse / Lab Technician)</option>
+            <option value="collector">Waste Collector (Driver / Handler)</option>
+            <option value="admin">Hospital Administrator</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
+          <input type="text" id="reg-fullname" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm" placeholder="Dr. Ananya Sharma">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Username</label>
+            <input type="text" id="reg-username" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm" placeholder="ananya_sharma">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Phone Number</label>
+            <input type="text" id="reg-phone" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm" placeholder="+91 98450 12345">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+          <input type="email" id="reg-email" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm" placeholder="staff@hospital.com">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+          <input type="password" id="reg-password" required minlength="6" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm" placeholder="••••••••">
+        </div>
+
+        <!-- Staff Specific Fields -->
+        <div id="staff-fields" class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Department</label>
+            <select id="reg-department" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm">
+              <option value="1">Emergency & Trauma Care</option>
+              <option value="2">Operation Theatre Complex (OT)</option>
+              <option value="3">Intensive Care Unit (ICU)</option>
+              <option value="4">Pathology & Microbiology Lab</option>
+              <option value="5">Oncology & Chemotherapy Ward</option>
+              <option value="6">Pediatrics & Neonatal ICU</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Designation</label>
+            <input type="text" id="reg-designation" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm" placeholder="Senior Nursing Officer">
+          </div>
+        </div>
+
+        <!-- Collector Specific Fields -->
+        <div id="collector-fields" class="space-y-3 hidden">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Vehicle Registration Number</label>
+            <input type="text" id="reg-vehicle" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm" placeholder="KA-05-EB-4421">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Assigned Campus Zone</label>
+            <input type="text" id="reg-zone" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm" placeholder="North Wing & Surgical Block">
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-3 px-4 rounded-xl text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 shadow-md shadow-sky-600/25 transition-all">
+          Complete Registration
+        </button>
+
+      </form>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-slate-900 text-slate-300 pt-16 pb-12 border-t border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+        
+        <div class="space-y-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-lg bg-sky-600 flex items-center justify-center text-white font-bold">
+              +
+            </div>
+            <span class="text-lg font-heading font-extrabold text-white">Smart Hospital Waste</span>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            CPCB & WHO compliant biomedical waste segregation, GPS tracking, and manifest generation platform for modern healthcare facilities.
+          </p>
+          <div class="text-xs text-slate-400">
+            Emergency Biohazard Hotline: <strong class="text-sky-400">1800-BMW-SAFE (24x7)</strong>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-bold text-white uppercase tracking-wider mb-4">Biomedical Bins</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><span class="text-yellow-400 font-bold">■</span> Yellow: Infectious & Pathological</li>
+            <li><span class="text-red-500 font-bold">■</span> Red: Contaminated Recyclable Plastics</li>
+            <li><span class="text-slate-300 font-bold">■</span> White: Sharps & Metal Needles</li>
+            <li><span class="text-blue-400 font-bold">■</span> Blue: Glassware & Implants</li>
+            <li><span class="text-emerald-400 font-bold">■</span> Green/Black: Municipal Waste (Separate)</li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-bold text-white uppercase tracking-wider mb-4">Portals</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><a href="/staff-dashboard.html" class="hover:text-white transition-colors">Hospital Staff Dashboard</a></li>
+            <li><a href="/collector-dashboard.html" class="hover:text-white transition-colors">Waste Collector Portal</a></li>
+            <li><a href="/admin-dashboard.html" class="hover:text-white transition-colors">Administrator Console</a></li>
+            <li><a href="#workflow" class="hover:text-white transition-colors">8-Stage Workflow</a></li>
+            <li><a href="#gps-map" class="hover:text-white transition-colors">GPS Telemetry Map</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-bold text-white uppercase tracking-wider mb-4">Statutory Standards</h4>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Bio-Medical Waste Management Rules (Ministry of Environment, Forest & Climate Change), CPCB Barcode Guidelines & WHO Infection Prevention Protocols.
+          </p>
+          <div class="mt-4 pt-4 border-t border-slate-800 text-[11px] text-slate-500">
+            System Version: 1.0.0 (Production Ready)
+          </div>
+        </div>
+
+      </div>
+
+      <div class="border-t border-slate-800 pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500">
+        <div>
+          &copy; 2026 Smart Hospital Waste Management System. All rights reserved.
+        </div>
+        <div class="mt-4 sm:mt-0 flex space-x-6">
+          <a href="#" class="hover:text-slate-400">Privacy Policy</a>
+          <a href="#" class="hover:text-slate-400">BMW Safety Guidelines</a>
+          <a href="#" class="hover:text-slate-400">CPCB Standards</a>
+        </div>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <script src="/js/api.js"></script>
+  
+  <script>
+    // Initialize Preview Map on Landing Page
+    let previewMap = null;
+
+    function initLandingMap() {
+      const hospitalCenter = [12.9716, 77.5946];
+      previewMap = L.map('home-preview-map').setView(hospitalCenter, 14);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(previewMap);
+
+      // Hospital Campus Marker
+      L.marker(hospitalCenter)
+        .addTo(previewMap)
+        .bindPopup('<b>Main Hospital Campus</b><br>Emergency, OT, ICU & Pathology')
+        .openPopup();
+
+      // Sample Collection Points
+      const points = [
+        { lat: 12.9718, lng: 77.5948, title: 'OT Complex (Sharps)', color: '#64748b' },
+        { lat: 12.9715, lng: 77.5944, title: 'ICU (Plastics)', color: '#ef4444' },
+        { lat: 12.9719, lng: 77.5949, title: 'Pathology Lab (Glassware)', color: '#2563eb' },
+        { lat: 12.9714, lng: 77.5942, title: 'Emergency Resuscitation (Infectious)', color: '#eab308' }
+      ];
+
+      points.forEach(p => {
+        L.circleMarker([p.lat, p.lng], {
+          radius: 8,
+          fillColor: p.color,
+          color: '#ffffff',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.9
+        }).addTo(previewMap).bindPopup(`<b>${p.title}</b><br>Status: Monitored Collection Point`);
+      });
+
+      // Collector Van Marker
+      const vanLocation = [12.9730, 77.5960];
+      L.marker(vanLocation)
+        .addTo(previewMap)
+        .bindPopup('<b>Collector Van KA-05-EB-4421</b><br>Status: Live Transit (Speed: 28 km/h)');
+
+      // CBWTF Facility Marker
+      const cbwtfLocation = [12.9856, 77.5810];
+      L.marker(cbwtfLocation)
+        .addTo(previewMap)
+        .bindPopup('<b>Apex Central Treatment Facility (CBWTF)</b><br>Incineration & Autoclave Terminal');
+
+      // Draw Route Line from Hospital to CBWTF
+      const latlngs = [
+        hospitalCenter,
+        [12.9750, 77.5910],
+        [12.9810, 77.5860],
+        cbwtfLocation
+      ];
+      L.polyline(latlngs, { color: '#0284c7', weight: 4, dashArray: '6, 8' }).addTo(previewMap);
+    }
+
+    // Modal Handlers
+    function openLoginModal(preselectRole = 'staff') {
+      document.getElementById('login-modal').classList.remove('hidden');
+      selectLoginRole(preselectRole);
+    }
+
+    function closeLoginModal() {
+      document.getElementById('login-modal').classList.add('hidden');
+    }
+
+    function selectLoginRole(role) {
+      document.getElementById('login-role').value = role;
+
+      ['staff', 'collector', 'admin'].forEach(r => {
+        const tab = document.getElementById(`tab-${r}`);
+        if (r === role) {
+          tab.classList.add('bg-white', 'text-slate-800', 'shadow-sm');
+          tab.classList.remove('text-slate-600');
+        } else {
+          tab.classList.remove('bg-white', 'text-slate-800', 'shadow-sm');
+          tab.classList.add('text-slate-600');
+        }
+      });
+
+      autoFillDemoCredentials();
+    }
+
+    function autoFillDemoCredentials() {
+      const role = document.getElementById('login-role').value;
+      const idInput = document.getElementById('login-identifier');
+      const passInput = document.getElementById('login-password');
+
+      passInput.value = 'Password@123';
+      if (role === 'staff') idInput.value = 'staff@hospital.com';
+      else if (role === 'collector') idInput.value = 'collector@hospital.com';
+      else if (role === 'admin') idInput.value = 'admin@hospital.com';
+    }
+
+    async function handleLoginSubmit(e) {
+      e.preventDefault();
+      const identifier = document.getElementById('login-identifier').value;
+      const password = document.getElementById('login-password').value;
+      const role = document.getElementById('login-role').value;
+      const btn = document.getElementById('login-submit-btn');
+
+      btn.disabled = true;
+      btn.innerText = 'Verifying Credentials...';
+
+      const res = await apiRequest('/auth/login', {
+        method: 'POST',
+        body: {
+          identifier,
+          password,
+          expectedRole: role
+        }
+      });
+
+      btn.disabled = false;
+      btn.innerText = 'Sign In to Dashboard';
+
+      if (res.success) {
+        setToken(res.token);
+        setUser(res.user);
+        showToast(res.message, 'success');
+        closeLoginModal();
+        setTimeout(() => {
+          if (role === 'staff') window.location.href = '/staff-dashboard.html';
+          else if (role === 'collector') window.location.href = '/collector-dashboard.html';
+          else if (role === 'admin') window.location.href = '/admin-dashboard.html';
+        }, 500);
+      } else {
+        showToast(res.message || 'Login failed', 'error');
+      }
+    }
+
+    function openRegisterModal() {
+      document.getElementById('register-modal').classList.remove('hidden');
+    }
+
+    function closeRegisterModal() {
+      document.getElementById('register-modal').classList.add('hidden');
+    }
+
+    function toggleRegisterFields(role) {
+      const staffFields = document.getElementById('staff-fields');
+      const collectorFields = document.getElementById('collector-fields');
+
+      if (role === 'staff') {
+        staffFields.classList.remove('hidden');
+        collectorFields.classList.add('hidden');
+      } else if (role === 'collector') {
+        staffFields.classList.add('hidden');
+        collectorFields.classList.remove('hidden');
+      } else {
+        staffFields.classList.add('hidden');
+        collectorFields.classList.add('hidden');
+      }
+    }
+
+    async function handleRegisterSubmit(e) {
+      e.preventDefault();
+      const role = document.getElementById('reg-role').value;
+      const full_name = document.getElementById('reg-fullname').value;
+      const username = document.getElementById('reg-username').value;
+      const email = document.getElementById('reg-email').value;
+      const phone = document.getElementById('reg-phone').value;
+      const password = document.getElementById('reg-password').value;
+      const department_id = document.getElementById('reg-department').value;
+      const designation = document.getElementById('reg-designation').value;
+      const vehicle_number = document.getElementById('reg-vehicle').value;
+      const assigned_zone = document.getElementById('reg-zone').value;
+
+      const res = await apiRequest('/auth/register', {
+        method: 'POST',
+        body: {
+          role,
+          full_name,
+          username,
+          email,
+          phone,
+          password,
+          department_id,
+          designation,
+          vehicle_number,
+          assigned_zone
+        }
+      });
+
+      if (res.success) {
+        showToast(res.message, 'success');
+        closeRegisterModal();
+        openLoginModal(role);
+      } else {
+        showToast(res.message || 'Registration failed', 'error');
+      }
+    }
+
+    // On Load
+    document.addEventListener('DOMContentLoaded', () => {
+      initLandingMap();
+    });
+  </script>
+</body>
+</html>
+

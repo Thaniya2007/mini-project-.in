@@ -1,0 +1,9 @@
+node_modules/
+*.zip
+.env
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+.DS_Store
+Thumbs.db

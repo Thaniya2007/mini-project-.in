@@ -1,0 +1,246 @@
+/* Smart Hospital Waste Management System - Custom Stylesheet */
+:root {
+  --primary: #0284c7;
+  --primary-dark: #0369a1;
+  --secondary: #0d9488;
+  --accent: #6366f1;
+  --surface: #ffffff;
+  --background: #f8fafc;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+
+  /* Biomedical Waste Colors */
+  --bmw-yellow: #eab308;
+  --bmw-yellow-bg: #fef9c3;
+  --bmw-yellow-border: #fde047;
+  --bmw-yellow-text: #854d0e;
+
+  --bmw-red: #ef4444;
+  --bmw-red-bg: #fee2e2;
+  --bmw-red-border: #fca5a5;
+  --bmw-red-text: #991b1b;
+
+  --bmw-white: #f1f5f9;
+  --bmw-white-bg: #f8fafc;
+  --bmw-white-border: #94a3b8;
+  --bmw-white-text: #334155;
+
+  --bmw-blue: #2563eb;
+  --bmw-blue-bg: #dbeafe;
+  --bmw-blue-border: #93c5fd;
+  --bmw-blue-text: #1e40af;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text-main);
+  background-color: var(--background);
+}
+
+/* Glassmorphism Accents */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+/* Waste Category Cards */
+.waste-bin-yellow {
+  background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
+  border: 2px solid var(--bmw-yellow);
+}
+.waste-bin-yellow:hover {
+  box-shadow: 0 10px 25px -5px rgba(234, 179, 8, 0.3);
+}
+
+.waste-bin-red {
+  background: linear-gradient(135deg, #fff1f2 0%, #fee2e2 100%);
+  border: 2px solid var(--bmw-red);
+}
+.waste-bin-red:hover {
+  box-shadow: 0 10px 25px -5px rgba(239, 68, 68, 0.3);
+}
+
+.waste-bin-white {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 2px solid #64748b;
+}
+.waste-bin-white:hover {
+  box-shadow: 0 10px 25px -5px rgba(100, 116, 139, 0.3);
+}
+
+.waste-bin-blue {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 2px solid var(--bmw-blue);
+}
+.waste-bin-blue:hover {
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.3);
+}
+
+/* Stage Badges */
+.badge-stage-1 { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; } /* Submitted */
+.badge-stage-2 { background-color: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; } /* Accepted */
+.badge-stage-3 { background-color: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; } /* Collector Assigned */
+.badge-stage-4 { background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; } /* In Progress */
+.badge-stage-5 { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; } /* Waste Collected */
+.badge-stage-6 { background-color: #cffafe; color: #155e75; border: 1px solid #a5f3fc; } /* Transported */
+.badge-stage-7 { background-color: #fae8ff; color: #86198f; border: 1px solid #f5d0fe; } /* Treatment Handover */
+.badge-stage-8 { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; } /* Completed */
+
+/* Bin Visual Container */
+.bin-illustration {
+  position: relative;
+  width: 64px;
+  height: 80px;
+  border-radius: 6px 6px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 -4px 8px rgba(0,0,0,0.15), 0 4px 6px -1px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease;
+}
+.bin-illustration:hover {
+  transform: translateY(-2px);
+}
+.bin-lid {
+  position: absolute;
+  top: -8px;
+  width: 74px;
+  height: 12px;
+  border-radius: 6px 6px 2px 2px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.12);
+}
+
+/* Pulsing radar for active collectors */
+@keyframes pulse-ring {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 0.3; }
+  100% { transform: scale(0.9); opacity: 0.8; }
+}
+.radar-pulse {
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Map Containers */
+.leaflet-map-container {
+  height: 480px;
+  width: 100%;
+  border-radius: 12px;
+  z-index: 10;
+}
+
+.leaflet-map-mini {
+  height: 240px;
+  width: 100%;
+  border-radius: 8px;
+  z-index: 5;
+}
+
+/* Stepper Timeline */
+.stepper-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+.stepper-item::after {
+  content: '';
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  width: 100%;
+  height: 3px;
+  background-color: #e2e8f0;
+  z-index: 1;
+}
+.stepper-item:last-child::after {
+  display: none;
+}
+.stepper-item.completed::after {
+  background-color: #10b981;
+}
+.stepper-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #f1f5f9;
+  border: 2px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  font-weight: 600;
+  font-size: 13px;
+  color: #64748b;
+  transition: all 0.3s ease;
+}
+.stepper-item.completed .stepper-circle {
+  background-color: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
+}
+.stepper-item.active .stepper-circle {
+  background-color: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.25);
+}
+
+/* Toast Container */
+#toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.toast {
+  min-width: 300px;
+  max-width: 420px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  color: #ffffff;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  animation: slideIn 0.3s ease-out;
+}
+.toast-success { background-color: #059669; }
+.toast-error { background-color: #dc2626; }
+.toast-info { background-color: #0284c7; }
+.toast-warning { background-color: #d97706; }
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+

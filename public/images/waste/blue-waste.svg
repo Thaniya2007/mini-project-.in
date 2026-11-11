@@ -1,0 +1,69 @@
+<!-- Blue Waste Graphic -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="blueBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#eff6ff"/>
+      <stop offset="100%" stop-color="#dbeafe"/>
+    </linearGradient>
+    <linearGradient id="blueBinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="50%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <filter id="shadowBlue" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <rect width="600" height="400" rx="16" fill="url(#blueBg)"/>
+  <line x1="0" y1="320" x2="600" y2="320" stroke="#93c5fd" stroke-width="3" stroke-dasharray="8,6"/>
+
+  <!-- Blue Container / Box -->
+  <g filter="url(#shadowBlue)">
+    <path d="M 190 140 L 210 330 Q 210 340 220 340 L 380 340 Q 390 340 390 330 L 410 140 Z" fill="url(#blueBinGrad)" stroke="#1e40af" stroke-width="4"/>
+    <rect x="170" y="115" width="260" height="28" rx="8" fill="#1d4ed8" stroke="#1e40af" stroke-width="3"/>
+    <rect x="260" y="95" width="80" height="22" rx="6" fill="#1e3a8a"/>
+    <rect x="270" y="340" width="60" height="12" rx="4" fill="#0f172a"/>
+
+    <!-- Glassware Icon on Bin -->
+    <circle cx="300" cy="235" r="42" fill="#ffffff" opacity="0.95" stroke="#2563eb" stroke-width="3"/>
+    <!-- Flask / Glass icon -->
+    <path d="M 292 205 L 308 205 L 308 220 L 324 250 Q 326 255 320 258 L 280 258 Q 274 255 276 250 L 292 220 Z" fill="#3b82f6" stroke="#1d4ed8" stroke-width="2"/>
+    <text x="300" y="272" font-family="'Inter', sans-serif" font-size="9" font-weight="900" fill="#1e40af" text-anchor="middle" letter-spacing="1">GLASSWARE</text>
+  </g>
+
+  <!-- Items: Glass Medicine Vials & Ampoules -->
+  <g transform="translate(60, 200)">
+    <!-- Vial 1 -->
+    <rect x="15" y="25" width="38" height="60" rx="5" fill="#bae6fd" stroke="#0284c7" stroke-width="2" opacity="0.9"/>
+    <rect x="22" y="15" width="24" height="10" rx="2" fill="#64748b"/>
+    <rect x="24" y="8" width="20" height="7" rx="2" fill="#0284c7"/>
+    <rect x="19" y="42" width="30" height="25" fill="#ffffff" opacity="0.85"/>
+    <text x="34" y="58" font-family="'Inter', sans-serif" font-size="7" font-weight="bold" fill="#0369a1" text-anchor="middle">10 ml</text>
+
+    <!-- Glass Ampoule -->
+    <path d="M 75 85 L 75 45 Q 75 32 82 25 L 82 10 Q 82 5 86 5 Q 90 5 90 10 L 90 25 Q 97 32 97 45 L 97 85 Z" fill="#bae6fd" stroke="#0284c7" stroke-width="2" opacity="0.9"/>
+    <line x1="82" y1="20" x2="90" y2="20" stroke="#ef4444" stroke-width="2"/>
+    <text x="56" y="120" font-family="'Inter', sans-serif" font-size="11" font-weight="bold" fill="#1e40af" text-anchor="middle">Vials &amp; Ampoules</text>
+  </g>
+
+  <!-- Items: Metallic Orthopedic Implants -->
+  <g transform="translate(440, 200)">
+    <!-- Stainless steel bone plate with screws -->
+    <rect x="10" y="25" width="80" height="26" rx="13" fill="#cbd5e1" stroke="#475569" stroke-width="2.5"/>
+    <circle cx="25" cy="38" r="5" fill="#64748b" stroke="#334155" stroke-width="1.5"/>
+    <circle cx="50" cy="38" r="5" fill="#64748b" stroke="#334155" stroke-width="1.5"/>
+    <circle cx="75" cy="38" r="5" fill="#64748b" stroke="#334155" stroke-width="1.5"/>
+    <!-- Metal Ortho Screw -->
+    <line x1="20" y1="75" x2="80" y2="75" stroke="#64748b" stroke-width="4"/>
+    <line x1="30" y1="70" x2="30" y2="80" stroke="#334155" stroke-width="2"/>
+    <line x1="45" y1="70" x2="45" y2="80" stroke="#334155" stroke-width="2"/>
+    <line x1="60" y1="70" x2="60" y2="80" stroke="#334155" stroke-width="2"/>
+    <text x="50" y="120" font-family="'Inter', sans-serif" font-size="11" font-weight="bold" fill="#1e40af" text-anchor="middle">Metallic Implants</text>
+  </g>
+
+  <!-- Title Badge -->
+  <rect x="20" y="20" width="310" height="42" rx="10" fill="#ffffff" opacity="0.95" stroke="#93c5fd" stroke-width="2"/>
+  <text x="35" y="46" font-family="'Inter', sans-serif" font-size="14" font-weight="800" fill="#1e40af">BLUE: Glassware &amp; Metallic Implants</text>
+</svg>
+

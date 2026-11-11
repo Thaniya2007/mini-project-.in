@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administrator Console | Smart Hospital Waste Management</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- jsPDF and AutoTable for Client-Side PDF Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+  <link rel="stylesheet" href="/css/style.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            heading: ['Plus Jakarta Sans', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+  <!-- Header -->
+  <header class="glass-nav sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+
+        <div class="flex items-center space-x-3">
+          <a href="/index.html" class="flex items-center space-x-2">
+            <div class="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold">
+              🛡️
+            </div>
+            <div>
+              <span class="text-base font-heading font-extrabold text-slate-900 block leading-tight">Smart Hospital
+                Waste</span>
+              <span class="text-[11px] font-semibold text-indigo-600 block -mt-0.5">Administrator Console</span>
+            </div>
+          </a>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="hidden md:flex items-center space-x-1 text-xs font-semibold">
+          <button onclick="switchAdminTab('overview')" id="tab-nav-overview"
+            class="admin-nav-btn px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700">Overview & Charts</button>
+          <button onclick="switchAdminTab('map')" id="tab-nav-map"
+            class="admin-nav-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900">GPS Live Map</button>
+          <button onclick="switchAdminTab('requests')" id="tab-nav-requests"
+            class="admin-nav-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900">Requests Monitor</button>
+          <button onclick="switchAdminTab('reports')" id="tab-nav-reports"
+            class="admin-nav-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900">Reports &
+            Manifests</button>
+          <button onclick="switchAdminTab('users')" id="tab-nav-users"
+            class="admin-nav-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900">User Management</button>
+          <button onclick="switchAdminTab('depts')" id="tab-nav-depts"
+            class="admin-nav-btn px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900">Departments &
+            Facilities</button>
+        </div>
+
+        <!-- Admin Profile -->
+        <div class="flex items-center space-x-4">
+          <div class="hidden sm:flex items-center space-x-2 text-right">
+            <div>
+              <div id="admin-name-display" class="text-xs font-bold text-slate-900">Dr. Vikram Malhotra</div>
+              <div class="text-[11px] text-indigo-600 font-semibold">Medical Superintendent</div>
+            </div>
+            <div
+              class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs border border-indigo-200">
+              ADM
+            </div>
+          </div>
+
+          <button onclick="logout()"
+            class="px-3 py-1.5 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg border border-rose-200 transition-all flex items-center space-x-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+            </svg>
+            <span>Sign Out</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- KPI Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+      <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center space-x-4">
+        <div class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3">
+            </path>
+          </svg>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 font-medium">Total Waste Collected</div>
+          <div id="kpi-total-kg" class="text-2xl font-heading font-extrabold text-slate-900">0 kg</div>
+        </div>
+      </div>
+
+      <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center space-x-4">
+        <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 font-medium">Pending Requests</div>
+          <div id="kpi-pending-requests" class="text-2xl font-heading font-extrabold text-amber-600">0</div>
+        </div>
+      </div>
+
+      <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center space-x-4">
+        <div
+          class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 font-medium">Completed Collections</div>
+          <div id="kpi-completed-requests" class="text-2xl font-heading font-extrabold text-emerald-600">0</div>
+        </div>
+      </div>
+
+      <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center space-x-4">
+        <div class="w-12 h-12 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center flex-shrink-0">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 font-medium">Active Collectors</div>
+          <div id="kpi-active-collectors" class="text-2xl font-heading font-extrabold text-teal-600">0</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 1: OVERVIEW & INTERACTIVE CHARTS -->
+    <div id="tab-overview" class="admin-tab-content space-y-8">
+
+      <!-- Interactive Charts Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+        <!-- Category-wise breakdown (Doughnut) -->
+        <div class="lg:col-span-5 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+          <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+            <div>
+              <h3 class="text-base font-heading font-extrabold text-slate-900">Waste Category Distribution</h3>
+              <p class="text-xs text-slate-400">Total weight collected across 4 colour-coded bins</p>
+            </div>
+            <span class="text-xs font-bold text-indigo-600">BioTrack Stats</span>
+          </div>
+
+          <div class="h-64 flex items-center justify-center">
+            <canvas id="categoryChart"></canvas>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-slate-100 text-[11px]" id="category-legend-list">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- 7-Day Collection Trend (Bar / Line) -->
+        <div class="lg:col-span-7 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+          <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+            <div>
+              <h3 class="text-base font-heading font-extrabold text-slate-900">Daily Biomedical Waste Collection Trend
+              </h3>
+              <p class="text-xs text-slate-400">Total weight (kg) collected over time</p>
+            </div>
+            <span class="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium">7-Day Rolling</span>
+          </div>
+
+          <div class="h-64">
+            <canvas id="trendChart"></canvas>
+          </div>
+
+          <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
+            <span>Hospital Campus Waste Generation Trajectory</span>
+            <span class="font-semibold text-emerald-600">CPCB Compliant Log</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Department Generation Comparison & Recent Activities -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+        <!-- Department Comparison (Horizontal Bar) -->
+        <div class="lg:col-span-5 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+          <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+            <div>
+              <h3 class="text-base font-heading font-extrabold text-slate-900">Department Generation</h3>
+              <p class="text-xs text-slate-400">Waste weight generation by ward/unit</p>
+            </div>
+            <span class="text-xs text-slate-400">Weight (kg)</span>
+          </div>
+
+          <div class="h-64">
+            <canvas id="deptChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Recent Collection Activities Table -->
+        <div class="lg:col-span-7 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+          <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+            <div>
+              <h3 class="text-base font-heading font-extrabold text-slate-900">Recent Collection Activities</h3>
+              <p class="text-xs text-slate-400">Live operational events across the hospital</p>
+            </div>
+            <button onclick="switchAdminTab('requests')"
+              class="text-xs font-semibold text-indigo-600 hover:underline">View All</button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="border-b border-slate-100 text-slate-400 font-semibold uppercase">
+                  <th class="py-2.5 px-2">Request</th>
+                  <th class="py-2.5 px-2">Category</th>
+                  <th class="py-2.5 px-2">Department</th>
+                  <th class="py-2.5 px-2">Collector</th>
+                  <th class="py-2.5 px-2">Status</th>
+                </tr>
+              </thead>
+              <tbody id="recent-activities-table" class="divide-y divide-slate-100">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- TAB 2: LIVE GPS MAP -->
+    <div id="tab-map" class="admin-tab-content hidden space-y-6">
+      <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+        <div
+          class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 mb-4 border-b border-slate-100 gap-3">
+          <div>
+            <h3 class="text-xl font-heading font-extrabold text-slate-900 flex items-center space-x-2">
+              <span>Interactive Hospital Campus & CBWTF Facility GPS Map</span>
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">Real-time coordinates of all waste collection points, active
+              collector vehicles, and treatment hubs</p>
+          </div>
+
+          <button onclick="reloadAdminMapData()"
+            class="px-3.5 py-2 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-all flex items-center space-x-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+              </path>
+            </svg>
+            <span>Refresh GPS Pins</span>
+          </button>
+        </div>
+
+        <div id="admin-live-map" class="w-full h-[520px] rounded-2xl z-10"></div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-100 text-xs">
+          <div class="flex items-center space-x-2">
+            <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+            <span class="text-slate-700 font-medium">Yellow (Infectious Point)</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span class="w-3 h-3 rounded-full bg-red-500"></span>
+            <span class="text-slate-700 font-medium">Red (Plastic Point)</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span class="w-3 h-3 rounded-full bg-slate-600"></span>
+            <span class="text-slate-700 font-medium">White (Sharps Point)</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+            <span class="text-slate-700 font-medium">Blue (Glassware Point)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: REQUESTS MONITOR -->
+    <div id="tab-requests" class="admin-tab-content hidden space-y-6">
+      <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200">
+
+        <div
+          class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 mb-6 border-b border-slate-100 gap-4">
+          <div>
+            <h3 class="text-xl font-heading font-extrabold text-slate-900">Hospital-Wide Collection Requests Monitor
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">Audit and track all biomedical waste requests across departments
+            </p>
+          </div>
+
+          <!-- Quick Search -->
+          <div class="flex items-center space-x-2 w-full sm:w-auto">
+            <input type="text" id="req-search-input" onkeyup="filterRequestsTable()"
+              placeholder="Search request #, department, room..."
+              class="px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-64">
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs" id="all-requests-table">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider">
+                <th class="py-3 px-3">Request #</th>
+                <th class="py-3 px-3">Photo</th>
+                <th class="py-3 px-3">Date</th>
+                <th class="py-3 px-3">Department</th>
+                <th class="py-3 px-3">Category</th>
+                <th class="py-3 px-3">Weight (kg)</th>
+                <th class="py-3 px-3">Staff</th>
+                <th class="py-3 px-3">Collector</th>
+                <th class="py-3 px-3">Status</th>
+                <th class="py-3 px-3 text-right">Details</th>
+              </tr>
+            </thead>
+            <tbody id="all-requests-table-body" class="divide-y divide-slate-100">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 4: COMPREHENSIVE REPORTS & EXPORTS -->
+    <div id="tab-reports" class="admin-tab-content hidden space-y-6">
+      <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200">
+
+        <div class="pb-6 mb-6 border-b border-slate-100">
+          <h3 class="text-xl font-heading font-extrabold text-slate-900">Biomedical Waste Collection Reports & Manifests
+          </h3>
+          <p class="text-xs text-slate-500 mt-0.5">Filter by date periods, category, department, staff, or collector.
+            Download official Excel & PDF manifests.</p>
+        </div>
+
+        <!-- Filter Controls -->
+        <div
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-200 mb-6 text-xs">
+
+          <div>
+            <label class="block font-bold text-slate-700 uppercase mb-1">Time Period</label>
+            <select id="report-period-select" onchange="handlePeriodChange(this.value)"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="all">All Available Records</option>
+              <option value="daily">Daily Report (Today)</option>
+              <option value="weekly">Weekly Report (Last 7 Days)</option>
+              <option value="monthly">Monthly Report (Last 30 Days)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 uppercase mb-1">Waste Category</label>
+            <select id="report-category-select"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="all">All 4 Categories</option>
+              <option value="1">Yellow (Infectious & Pathological)</option>
+              <option value="2">Red (Contaminated Recyclable Plastics)</option>
+              <option value="3">White (Sharps & Needles)</option>
+              <option value="4">Blue (Glassware & Implants)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 uppercase mb-1">Hospital Department</label>
+            <select id="report-dept-select"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="all">All Departments</option>
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 uppercase mb-1">Status Filter</label>
+            <select id="report-status-select"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="all">All Statuses</option>
+              <option value="Request Submitted">Request Submitted</option>
+              <option value="Collection in Progress">Collection in Progress</option>
+              <option value="Waste Collected">Waste Collected</option>
+              <option value="Transported">Transported</option>
+              <option value="Handed Over to Authorized Treatment Facility">Handed Over to CBWTF</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+
+          <div
+            class="sm:col-span-2 lg:col-span-4 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200">
+            <button onclick="executeReportQuery()"
+              class="px-5 py-2.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm transition-all flex items-center space-x-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+              <span>Apply Filters & Generate Report</span>
+            </button>
+
+            <!-- Export Buttons -->
+            <div class="flex items-center space-x-3">
+              <button onclick="downloadExcelReport()"
+                class="px-4 py-2.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-xl shadow-sm transition-all flex items-center space-x-1.5">
+                <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                  </path>
+                </svg>
+                <span>Download Excel (.xlsx)</span>
+              </button>
+
+              <button onclick="downloadPDFReport()"
+                class="px-4 py-2.5 text-xs font-semibold text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-300 rounded-xl shadow-sm transition-all flex items-center space-x-1.5">
+                <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                  </path>
+                </svg>
+                <span>Download PDF Manifest</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Report Summary Stats Callout -->
+        <div id="report-summary-box"
+          class="p-4 rounded-2xl bg-indigo-50 border border-indigo-200 text-xs text-indigo-950 flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div>
+            Total Records: <strong id="rep-summary-records" class="font-bold">0</strong> |
+            Total Weight: <strong id="rep-summary-weight" class="font-bold">0 kg</strong> |
+            Completed: <strong id="rep-summary-completed" class="font-bold text-emerald-700">0</strong>
+          </div>
+          <span class="text-[11px] text-indigo-700 font-semibold">Central Pollution Control Board (CPCB) Verified
+            Manifest Format</span>
+        </div>
+
+        <!-- Report Records Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs" id="report-records-table">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider">
+                <th class="py-3 px-3">SL</th>
+                <th class="py-3 px-3">Request #</th>
+                <th class="py-3 px-3">Photo</th>
+                <th class="py-3 px-3">Date / Time</th>
+                <th class="py-3 px-3">Department</th>
+                <th class="py-3 px-3">Category</th>
+                <th class="py-3 px-3">Quantity (kg)</th>
+                <th class="py-3 px-3">Staff</th>
+                <th class="py-3 px-3">Collector</th>
+                <th class="py-3 px-3">Disposal Facility</th>
+                <th class="py-3 px-3">Status</th>
+              </tr>
+            </thead>
+            <tbody id="report-records-tbody" class="divide-y divide-slate-100">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 5: USER MANAGEMENT (STAFF & COLLECTORS) -->
+    <div id="tab-users" class="admin-tab-content hidden space-y-6">
+      <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200">
+
+        <div
+          class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 mb-6 border-b border-slate-100 gap-4">
+          <div>
+            <h3 class="text-xl font-heading font-extrabold text-slate-900">Hospital Staff & Collectors Management</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Manage access, view badge numbers, vehicle registrations, and
+              toggle account statuses</p>
+          </div>
+
+          <button onclick="openCreateUserModal()"
+            class="px-4 py-2.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm transition-all flex items-center space-x-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            <span>Create New User Account</span>
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider">
+                <th class="py-3 px-3">User</th>
+                <th class="py-3 px-3">Email / Username</th>
+                <th class="py-3 px-3">Role</th>
+                <th class="py-3 px-3">Department / Vehicle</th>
+                <th class="py-3 px-3">Code / Badge</th>
+                <th class="py-3 px-3">Status</th>
+                <th class="py-3 px-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body" class="divide-y divide-slate-100">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 6: DEPARTMENTS & TREATMENT FACILITIES -->
+    <div id="tab-depts" class="admin-tab-content hidden space-y-8">
+
+      <!-- Departments Section -->
+      <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200">
+        <div class="flex items-center justify-between pb-6 mb-6 border-b border-slate-100">
+          <div>
+            <h3 class="text-xl font-heading font-extrabold text-slate-900">Hospital Departments</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Manage hospital wards, surgical suites, and intensive care units
+            </p>
+          </div>
+
+          <button onclick="openAddDeptModal()"
+            class="px-4 py-2 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-all">
+            + Add Department
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="departments-cards-grid">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Authorized Treatment Facilities (CBWTF) Section -->
+      <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200">
+        <div class="flex items-center justify-between pb-6 mb-6 border-b border-slate-100">
+          <div>
+            <h3 class="text-xl font-heading font-extrabold text-slate-900">Authorized Bio-Medical Waste Treatment
+              Facilities (CBWTF)</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Licensed treatment plants, incinerators, and autoclaving facilities
+            </p>
+          </div>
+
+          <button onclick="openAddFacilityModal()"
+            class="px-4 py-2 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-all">
+            + Register Treatment Facility
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="facilities-cards-grid">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Create User Modal -->
+  <div id="create-user-modal"
+    class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div
+      class="bg-white rounded-3xl max-w-lg w-full p-8 shadow-2xl relative border border-slate-200 max-h-[90vh] overflow-y-auto">
+      <button onclick="closeCreateUserModal()"
+        class="absolute top-6 right-6 text-slate-400 hover:text-slate-600">✕</button>
+
+      <h3 class="text-xl font-heading font-extrabold text-slate-900 mb-4">Create New Hospital Account</h3>
+
+      <form id="create-user-form" onsubmit="handleCreateUserSubmit(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 uppercase mb-1">Role *</label>
+          <select id="new-user-role" onchange="toggleNewUserRoleFields(this.value)"
+            class="w-full px-3 py-2 rounded-xl border border-slate-300">
+            <option value="staff">Hospital Staff</option>
+            <option value="collector">Waste Collector</option>
+            <option value="admin">Administrator</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 uppercase mb-1">Full Name *</label>
+          <input type="text" id="new-user-fullname" required placeholder="e.g. Dr. Rajeshwari V"
+            class="w-full px-3 py-2 rounded-xl border border-slate-300">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 uppercase mb-1">Username *</label>
+            <input type="text" id="new-user-username" required placeholder="rajeshwari_v"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 uppercase mb-1">Phone</label>
+            <input type="text" id="new-user-phone" placeholder="+91 98450 00000"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 uppercase mb-1">Email *</label>
+          <input type="email" id="new-user-email" required placeholder="user@hospital.com"
+            class="w-full px-3 py-2 rounded-xl border border-slate-300">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 uppercase mb-1">Initial Password *</label>
+          <input type="password" id="new-user-password" required value="Password@123"
+            class="w-full px-3 py-2 rounded-xl border border-slate-300">
+        </div>
+
+        <!-- Role Fields -->
+        <div id="new-staff-fields" class="space-y-3">
+          <div>
+            <label class="block font-bold text-slate-700 uppercase mb-1">Department</label>
+            <select id="new-staff-dept" class="w-full px-3 py-2 rounded-xl border border-slate-300">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 uppercase mb-1">Designation</label>
+            <input type="text" id="new-staff-desig" placeholder="e.g. Nursing Officer"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300">
+          </div>
+        </div>
+
+        <div id="new-col-fields" class="space-y-3 hidden">
+          <div>
+            <label class="block font-bold text-slate-700 uppercase mb-1">Vehicle Registration #</label>
+            <input type="text" id="new-col-veh" placeholder="e.g. KA-05-BMW-5501"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 uppercase mb-1">Assigned Zone</label>
+            <input type="text" id="new-col-zone" placeholder="e.g. Emergency & West Wing"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300">
+          </div>
+        </div>
+
+        <button type="submit"
+          class="w-full py-3 px-4 rounded-xl font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all">
+          Create Account
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Department Modal -->
+  <div id="add-dept-modal"
+    class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl relative border border-slate-200">
+      <button onclick="closeAddDeptModal()"
+        class="absolute top-6 right-6 text-slate-400 hover:text-slate-600">✕</button>
+      <h3 class="text-xl font-heading font-extrabold text-slate-900 mb-4">Add Hospital Department</h3>
+
+      <form id="add-dept-form" onsubmit="handleAddDeptSubmit(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 uppercase mb-1">Department Name *</label>
+          <input type="text" id="new-dept-name" required placeholder="e.g. Cardiology & Cath Lab"
+            class="w-full px-3 py-2 rounded-xl border border-slate-300">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 uppercase mb-1">Department Code *</label>
+          <input type="text" id="new-dept-code" required placeholder="e.g. CARD-CATH"
+            class="w-full px-3 py-2 rounded-xl border border-slate-300">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 uppercase mb-1">Floor</label>
+            <input type="text" id="new-dept-floor" placeholder="4th Floor"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 uppercase mb-1">Building</label>
+            <input type="text" id="new-dept-bldg" placeholder="Cardio Block"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300">
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 uppercase mb-1">Department Head</label>
+          <input type="text" id="new-dept-head" placeholder="Dr. Suresh Shenoy"
+            class="w-full px-3 py-2 rounded-xl border border-slate-300">
+        </div>
+        <button type="submit"
+          class="w-full py-3 px-4 rounded-xl font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all">
+          Save Department
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Facility Modal -->
+  <div id="add-fac-modal"
+    class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl relative border border-slate-200">
+      <button onclick="closeAddFacModal()" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600">✕</button>
+      <h3 class="text-xl font-heading font-extrabold text-slate-900 mb-4">Register Treatment Facility</h3>
+
+      <form id="add-fac-form" onsubmit="handleAddFacSubmit(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 uppercase mb-1">Facility Name *</label>
+          <input type="text" id="new-fac-name" required placeholder="e.g. Karnataka State Eco-Care CBWTF"
+            class="w-full px-3 py-2 rounded-xl border border-slate-300">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 uppercase mb-1">Facility Code *</label>
+          <input type="text" id="new-fac-code" required placeholder="CBWTF-KSPCB-04"
+            class="w-full px-3 py-2 rounded-xl border border-slate-300">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 uppercase mb-1">Facility Type</label>
+          <input type="text" id="new-fac-type" value="Central Bio-Medical Waste Treatment Facility (CBWTF)"
+            class="w-full px-3 py-2 rounded-xl border border-slate-300">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 uppercase mb-1">Latitude *</label>
+            <input type="text" id="new-fac-lat" required value="12.9800"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 uppercase mb-1">Longitude *</label>
+            <input type="text" id="new-fac-lng" required value="77.5850"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300">
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 uppercase mb-1">CPCB License Number</label>
+          <input type="text" id="new-fac-license" placeholder="CPCB-BMW-KA-2026-9901"
+            class="w-full px-3 py-2 rounded-xl border border-slate-300">
+        </div>
+        <button type="submit"
+          class="w-full py-3 px-4 rounded-xl font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition-all">
+          Register Facility
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Image Zoom Inspection Modal -->
+  <div id="admin-image-modal"
+    class="fixed inset-0 z-50 hidden bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl relative border border-slate-200">
+      <button onclick="closeImageModal()"
+        class="absolute top-4 right-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">✕</button>
+      <h3 id="admin-modal-img-title" class="text-base font-heading font-extrabold text-slate-900 mb-3">Waste Photograph
+        Inspection</h3>
+      <div
+        class="w-full h-80 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
+        <img id="admin-modal-img" src="" alt="Enlarged Waste Photograph" class="w-full h-full object-contain">
+      </div>
+      <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
+        <span>Biomedical Segregation Verification Photo</span>
+        <button onclick="closeImageModal()"
+          class="px-4 py-1.5 bg-slate-900 text-white rounded-xl font-semibold">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="/js/api.js"></script>
+
+  <script>
+    let currentUser = null;
+    let adminMap = null;
+    let allRequestsData = [];
+    let reportRecordsData = [];
+    let departmentsData = [];
+    let facilitiesData = [];
+    let categoryChartInstance = null;
+    let trendChartInstance = null;
+    let deptChartInstance = null;
+
+    function switchAdminTab(tabName) {
+      document.querySelectorAll('.admin-tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.admin-nav-btn').forEach(btn => {
+        btn.classList.remove('bg-indigo-50', 'text-indigo-700');
+        btn.classList.add('text-slate-600');
+      });
+
+      const targetTab = document.getElementById(`tab-${tabName}`);
+      const targetBtn = document.getElementById(`tab-nav-${tabName}`);
+
+      if (targetTab) targetTab.classList.remove('hidden');
+      if (targetBtn) {
+        targetBtn.classList.remove('text-slate-600');
+        targetBtn.classList.add('bg-indigo-50', 'text-indigo-700');
+      }
+
+      if (tabName === 'map' && adminMap) {
+        setTimeout(() => adminMap.invalidateSize(), 200);
+      }
+    }
+
+    async function loadDashboardStats() {
+      const res = await apiRequest('/admin/dashboard-stats');
+      if (res.success && res.data) {
+        const d = res.data;
+        document.getElementById('kpi-total-kg').innerText = `${d.totalWasteKg} kg`;
+        document.getElementById('kpi-pending-requests').innerText = d.pendingRequests;
+        document.getElementById('kpi-completed-requests').innerText = d.completedCollections;
+        document.getElementById('kpi-active-collectors').innerText = d.activeCollectors;
+
+        renderCategoryChart(d.categoryStats);
+        renderTrendChart(d.trendStats);
+        renderDeptChart(d.departmentStats);
+        renderRecentActivities(d.recentActivities);
+      }
+    }
+
+    function renderCategoryChart(categoryStats) {
+      const ctx = document.getElementById('categoryChart').getContext('2d');
+      const labels = categoryStats.map(c => `${c.color} (${c.name})`);
+      const weights = categoryStats.map(c => Math.round(c.total_kg * 10) / 10);
+      const colors = ['#eab308', '#ef4444', '#64748b', '#2563eb'];
+
+      if (categoryChartInstance) categoryChartInstance.destroy();
+
+      categoryChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: weights,
+            backgroundColor: colors,
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          cutout: '68%'
+        }
+      });
+
+      // Render custom legend
+      const legendBox = document.getElementById('category-legend-list');
+      legendBox.innerHTML = categoryStats.map((c, i) => `
+        <div class="flex items-center space-x-2">
+          <span class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: ${colors[i]};"></span>
+          <span class="text-slate-700 font-medium truncate">${c.color}: <strong>${Math.round(c.total_kg * 10) / 10} kg</strong></span>
+        </div>
+      `).join('');
+    }
+
+    function renderTrendChart(trendStats) {
+      const ctx = document.getElementById('trendChart').getContext('2d');
+      const labels = trendStats.map(t => formatDateShort(t.date));
+      const weights = trendStats.map(t => Math.round(t.daily_kg * 10) / 10);
+
+      if (trendChartInstance) trendChartInstance.destroy();
+
+      trendChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels.length ? labels : ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'],
+          datasets: [{
+            label: 'Daily Bio-Waste (kg)',
+            data: weights.length ? weights : [12.4, 18.2, 14.5, 22.0, 19.8, 25.1, 28.4],
+            borderColor: '#4f46e5',
+            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+            fill: true,
+            tension: 0.35,
+            pointRadius: 4,
+            pointBackgroundColor: '#4f46e5'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    function renderDeptChart(departmentStats) {
+      const ctx = document.getElementById('deptChart').getContext('2d');
+      const labels = departmentStats.map(d => d.department_name.split('&')[0]);
+      const weights = departmentStats.map(d => Math.round(d.total_kg * 10) / 10);
+
+      if (deptChartInstance) deptChartInstance.destroy();
+
+      deptChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Total kg',
+            data: weights,
+            backgroundColor: '#0284c7',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    function renderRecentActivities(activities) {
+      const tbody = document.getElementById('recent-activities-table');
+      if (!activities || activities.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-slate-400">No activities logged yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = activities.map(a => `
+        <tr class="hover:bg-slate-50/80">
+          <td class="py-2 px-2 font-semibold text-indigo-700">${a.request_number}</td>
+          <td class="py-2 px-2">${getCategoryBadge(a.category_color, a.category_name)}</td>
+          <td class="py-2 px-2 text-slate-600 truncate max-w-[120px]">${a.department_name}</td>
+          <td class="py-2 px-2 text-slate-600">${a.collector_name || '<span class="text-slate-400 italic">Unassigned</span>'}</td>
+          <td class="py-2 px-2">${getStageBadge(a.status)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function formatDateShort(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    // Interactive Admin GPS Map
+    function initAdminMap() {
+      const center = [12.9716, 77.5946];
+      adminMap = L.map('admin-live-map').setView(center, 14);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(adminMap);
+
+      reloadAdminMapData();
+    }
+
+    async function reloadAdminMapData() {
+      if (!adminMap) return;
+
+      const res = await apiRequest('/gps/live-map-data');
+      if (res.success && res.data) {
+        const { collectionPoints, collectors, facilities } = res.data;
+
+        // Plot Facilities
+        facilities.forEach(f => {
+          L.marker([f.latitude, f.longitude])
+            .addTo(adminMap)
+            .bindPopup(`
+              <b>${f.name}</b><br>
+              <span class="text-xs text-slate-600">${f.facility_type}</span><br>
+              License: ${f.license_number}<br>
+              Capacity: ${f.capacity_tons_day} Tons/Day
+            `);
+        });
+
+        // Plot Collector Vans
+        collectors.forEach(c => {
+          if (c.current_lat && c.current_lng) {
+            L.marker([c.current_lat, c.current_lng])
+              .addTo(adminMap)
+              .bindPopup(`
+                <b>Collector: ${c.full_name}</b><br>
+                Vehicle: <strong>${c.vehicle_number}</strong><br>
+                Zone: ${c.assigned_zone}<br>
+                Status: Live GPS Active
+              `);
+          }
+        });
+
+        // Plot Collection Points
+        collectionPoints.forEach(p => {
+          L.circleMarker([p.collection_lat, p.collection_lng], {
+            radius: 7,
+            fillColor: p.category_hex || '#eab308',
+            color: '#ffffff',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.9
+          }).addTo(adminMap).bindPopup(`
+            <b>${p.request_number}</b> (${p.category_name})<br>
+            Department: ${p.department_name} (Room: ${p.room_number})<br>
+            Status: <strong>${p.status}</strong><br>
+            Quantity: ${p.actual_weight_kg || p.estimated_weight_kg} kg
+          `);
+        });
+
+        showToast('Live GPS data refreshed on map', 'info');
+      }
+    }
+
+    // Requests Table
+    async function loadAllRequests() {
+      const res = await apiRequest('/reports/query');
+      if (res.success && res.data) {
+        allRequestsData = res.data;
+        renderAllRequestsTable(allRequestsData);
+      }
+    }
+
+    function renderAllRequestsTable(records) {
+      const tbody = document.getElementById('all-requests-table-body');
+      if (records.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center py-8 text-slate-400">No requests match criteria.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = records.map(r => `
+        <tr class="hover:bg-slate-50/80">
+          <td class="py-3 px-3 font-semibold text-indigo-700">${r.request_number}</td>
+          <td class="py-3 px-3">
+            <img src="${r.waste_photo || '/images/waste/yellow-waste.jpg'}" class="w-10 h-10 rounded-lg object-cover border border-slate-200 cursor-pointer shadow-sm hover:scale-110 transition-transform" onclick="showImageModal('${r.waste_photo || '/images/waste/yellow-waste.jpg'}', '${r.request_number} - Waste Photograph')" title="Click to enlarge">
+          </td>
+          <td class="py-3 px-3 text-slate-500">${formatDate(r.created_at)}</td>
+          <td class="py-3 px-3">
+            <div class="font-medium text-slate-900">${r.department_name}</div>
+            <div class="text-[10px] text-slate-400">Room ${r.room_number}</div>
+          </td>
+          <td class="py-3 px-3">${getCategoryBadge(r.category_color, r.category_name)}</td>
+          <td class="py-3 px-3 font-bold text-slate-800">${r.quantity_kg} kg</td>
+          <td class="py-3 px-3 text-slate-600">${r.staff_name || 'N/A'}</td>
+          <td class="py-3 px-3">
+            ${r.collector_name ? `<span class="text-slate-900 font-medium">${r.collector_name}</span><span class="block text-[10px] text-slate-400">${r.vehicle_number}</span>` : '<span class="text-slate-400 italic">Unassigned</span>'}
+          </td>
+          <td class="py-3 px-3">${getStageBadge(r.status)}</td>
+          <td class="py-3 px-3 text-right">
+            <button onclick="viewRequestAuditDetails(${r.id})" class="px-2.5 py-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-lg">
+              View
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function filterRequestsTable() {
+      const q = document.getElementById('req-search-input').value.toLowerCase();
+      const filtered = allRequestsData.filter(r =>
+        (r.request_number && r.request_number.toLowerCase().includes(q)) ||
+        (r.department_name && r.department_name.toLowerCase().includes(q)) ||
+        (r.room_number && r.room_number.toLowerCase().includes(q)) ||
+        (r.category_name && r.category_name.toLowerCase().includes(q))
+      );
+      renderAllRequestsTable(filtered);
+    }
+
+    // Reports Module
+    async function executeReportQuery() {
+      const period = document.getElementById('report-period-select').value;
+      const category_id = document.getElementById('report-category-select').value;
+      const department_id = document.getElementById('report-dept-select').value;
+      const status = document.getElementById('report-status-select').value;
+
+      const params = new URLSearchParams();
+      if (period !== 'all') params.append('period', period);
+      if (category_id !== 'all') params.append('category_id', category_id);
+      if (department_id !== 'all') params.append('department_id', department_id);
+      if (status !== 'all') params.append('status', status);
+
+      const res = await apiRequest(`/reports/query?${params.toString()}`);
+      if (res.success && res.data) {
+        reportRecordsData = res.data;
+        const sum = res.summary;
+
+        document.getElementById('rep-summary-records').innerText = sum.totalRecords;
+        document.getElementById('rep-summary-weight').innerText = `${sum.totalWeightKg} kg`;
+        document.getElementById('rep-summary-completed').innerText = sum.completedCount;
+
+        renderReportTable(reportRecordsData);
+        showToast(`Report generated: ${reportRecordsData.length} records matching criteria`, 'success');
+      }
+    }
+
+    function renderReportTable(records) {
+      const tbody = document.getElementById('report-records-tbody');
+      if (records.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center py-8 text-slate-400">No records found matching filters.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = records.map((r, idx) => `
+        <tr class="hover:bg-slate-50/80">
+          <td class="py-2.5 px-3 text-slate-400">${idx + 1}</td>
+          <td class="py-2.5 px-3 font-semibold text-indigo-700">${r.request_number}</td>
+          <td class="py-2.5 px-3">
+            <img src="${r.waste_photo || '/images/waste/yellow-waste.jpg'}" class="w-9 h-9 rounded-lg object-cover border border-slate-200 cursor-pointer shadow-sm hover:scale-110 transition-transform" onclick="showImageModal('${r.waste_photo || '/images/waste/yellow-waste.jpg'}', '${r.request_number} - Waste Photograph')" title="Click to enlarge">
+          </td>
+          <td class="py-2.5 px-3 text-slate-500">${formatDate(r.created_at)}</td>
+          <td class="py-2.5 px-3 text-slate-800">${r.department_name} (${r.room_number})</td>
+          <td class="py-2.5 px-3">${getCategoryBadge(r.category_color, r.category_name)}</td>
+          <td class="py-2.5 px-3 font-bold text-slate-900">${r.quantity_kg} kg</td>
+          <td class="py-2.5 px-3 text-slate-600">${r.staff_name || 'N/A'}</td>
+          <td class="py-2.5 px-3 text-slate-600">${r.collector_name || 'N/A'}</td>
+          <td class="py-2.5 px-3 text-slate-600 truncate max-w-[140px]">${r.facility_name || 'Pending Transfer'}</td>
+          <td class="py-2.5 px-3">${getStageBadge(r.status)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function downloadExcelReport() {
+      const period = document.getElementById('report-period-select').value;
+      const category_id = document.getElementById('report-category-select').value;
+      const department_id = document.getElementById('report-dept-select').value;
+      const status = document.getElementById('report-status-select').value;
+
+      const params = new URLSearchParams();
+      if (period !== 'all') params.append('period', period);
+      if (category_id !== 'all') params.append('category_id', category_id);
+      if (department_id !== 'all') params.append('department_id', department_id);
+      if (status !== 'all') params.append('status', status);
+
+      const downloadUrl = `/api/reports/export/excel?${params.toString()}&token=${getToken()}`;
+      window.open(downloadUrl, '_blank');
+      showToast('Downloading Excel spreadsheet report...', 'info');
+    }
+
+    function downloadPDFReport() {
+      if (reportRecordsData.length === 0) {
+        showToast('No records available to export', 'warning');
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('landscape');
+
+      // Header Banner
+      doc.setFillColor(2, 132, 199);
+      doc.rect(0, 0, 297, 24, 'F');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(255, 255, 255);
+      doc.text('SMART HOSPITAL BIOMEDICAL WASTE MANAGEMENT SYSTEM', 14, 12);
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Central Pollution Control Board (CPCB) Statutory Biomedical Waste Manifest & Audit Report', 14, 18);
+
+      // Meta Info
+      doc.setTextColor(51, 65, 85);
+      doc.setFontSize(9);
+      doc.text(`Generated On: ${new Date().toLocaleString()}`, 14, 30);
+      doc.text(`Medical Superintendent: Dr. Vikram Malhotra`, 14, 35);
+      doc.text(`Total Records: ${reportRecordsData.length}`, 220, 30);
+
+      let totalKg = 0;
+      reportRecordsData.forEach(r => totalKg += parseFloat(r.quantity_kg || 0));
+      doc.text(`Total Waste Quantity: ${Math.round(totalKg * 10) / 10} kg`, 220, 35);
+
+      // Table columns & rows
+      const tableColumns = [
+        'SL',
+        'Request #',
+        'Date & Time',
+        'Department',
+        'Ward / Room',
+        'Waste Category',
+        'Bin Color',
+        'Weight (kg)',
+        'Collector & Van',
+        'Treatment Facility',
+        'Status'
+      ];
+
+      const tableRows = reportRecordsData.map((r, i) => [
+        i + 1,
+        r.request_number,
+        new Date(r.created_at).toLocaleDateString(),
+        r.department_name,
+        r.room_number,
+        r.category_name,
+        r.category_color.toUpperCase(),
+        `${r.quantity_kg} kg`,
+        r.collector_name ? `${r.collector_name} (${r.vehicle_number || ''})` : 'Unassigned',
+        r.facility_name || 'Pending Handover',
+        r.status
+      ]);
+
+      doc.autoTable({
+        head: [tableColumns],
+        body: tableRows,
+        startY: 42,
+        theme: 'striped',
+        headStyles: {
+          fillColor: [30, 41, 59],
+          textColor: 255,
+          fontSize: 8,
+          fontStyle: 'bold'
+        },
+        styles: {
+          fontSize: 7.5,
+          cellPadding: 2
+        },
+        margin: { left: 14, right: 14 }
+      });
+
+      // Signature Box
+      const finalY = doc.lastAutoTable.finalY + 14;
+      if (finalY < 185) {
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Certified By Hospital Environmental & Infection Control Committee', 14, finalY);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Digital Signature / Barcode Stamped for State Pollution Control Board Inspection', 14, finalY + 5);
+
+        doc.rect(210, finalY - 4, 72, 18);
+        doc.text('Authorized CBWTF Verification Seal', 214, finalY + 2);
+        doc.text('STATUS: VERIFIED & SEALED', 214, finalY + 8);
+      }
+
+      doc.save(`Hospital_Biomedical_Waste_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+      showToast('Official PDF manifest report downloaded!', 'success');
+    }
+
+    // User Management
+    async function loadUsers() {
+      const res = await apiRequest('/admin/users');
+      if (res.success && res.data) {
+        const tbody = document.getElementById('users-table-body');
+        tbody.innerHTML = res.data.map(u => `
+          <tr class="hover:bg-slate-50/80">
+            <td class="py-3 px-3 font-semibold text-slate-900">${u.full_name}</td>
+            <td class="py-3 px-3 text-slate-500">${u.email} (${u.username})</td>
+            <td class="py-3 px-3">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${u.role === 'admin' ? 'bg-indigo-100 text-indigo-700' : u.role === 'collector' ? 'bg-teal-100 text-teal-700' : 'bg-sky-100 text-sky-700'} uppercase">
+                ${u.role}
+              </span>
+            </td>
+            <td class="py-3 px-3 text-slate-600">
+              ${u.department_name ? `${u.department_name} (${u.designation || 'Staff'})` : u.vehicle_number ? `Van: ${u.vehicle_number}` : 'Hospital Admin'}
+            </td>
+            <td class="py-3 px-3 font-mono text-slate-500">${u.staff_code || u.collector_code || 'N/A'}</td>
+            <td class="py-3 px-3">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${u.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
+                ${u.status}
+              </span>
+            </td>
+            <td class="py-3 px-3 text-right">
+              <button onclick="toggleUserStatus(${u.id}, '${u.status === 'active' ? 'inactive' : 'active'}')" class="text-xs font-semibold ${u.status === 'active' ? 'text-rose-600 hover:text-rose-800' : 'text-emerald-600 hover:text-emerald-800'}">
+                ${u.status === 'active' ? 'Deactivate' : 'Activate'}
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    async function toggleUserStatus(userId, newStatus) {
+      const res = await apiRequest(`/admin/users/${userId}/status`, {
+        method: 'PATCH',
+        body: { status: newStatus }
+      });
+
+      if (res.success) {
+        showToast(res.message, 'success');
+        loadUsers();
+      } else {
+        showToast(res.message || 'Failed to update user status', 'error');
+      }
+    }
+
+    function openCreateUserModal() {
+      document.getElementById('create-user-modal').classList.remove('hidden');
+    }
+    function closeCreateUserModal() {
+      document.getElementById('create-user-modal').classList.add('hidden');
+    }
+
+    function toggleNewUserRoleFields(role) {
+      const staffFields = document.getElementById('new-staff-fields');
+      const colFields = document.getElementById('new-col-fields');
+
+      if (role === 'staff') {
+        staffFields.classList.remove('hidden');
+        colFields.classList.add('hidden');
+      } else if (role === 'collector') {
+        staffFields.classList.add('hidden');
+        colFields.classList.remove('hidden');
+      } else {
+        staffFields.classList.add('hidden');
+        colFields.classList.add('hidden');
+      }
+    }
+
+    async function handleCreateUserSubmit(e) {
+      e.preventDefault();
+      const role = document.getElementById('new-user-role').value;
+      const full_name = document.getElementById('new-user-fullname').value;
+      const username = document.getElementById('new-user-username').value;
+      const email = document.getElementById('new-user-email').value;
+      const phone = document.getElementById('new-user-phone').value;
+      const password = document.getElementById('new-user-password').value;
+      const department_id = document.getElementById('new-staff-dept').value;
+      const designation = document.getElementById('new-staff-desig').value;
+      const vehicle_number = document.getElementById('new-col-veh').value;
+      const assigned_zone = document.getElementById('new-col-zone').value;
+
+      const res = await apiRequest('/admin/users', {
+        method: 'POST',
+        body: {
+          role,
+          full_name,
+          username,
+          email,
+          phone,
+          password,
+          department_id,
+          designation,
+          vehicle_number,
+          assigned_zone
+        }
+      });
+
+      if (res.success) {
+        showToast(res.message, 'success');
+        closeCreateUserModal();
+        loadUsers();
+      } else {
+        showToast(res.message || 'Failed to create user', 'error');
+      }
+    }
+
+    // Departments & Facilities Management
+    async function loadDepartments() {
+      const res = await apiRequest('/admin/departments');
+      if (res.success && res.data) {
+        departmentsData = res.data;
+
+        // Populate dropdowns
+        const reportDeptSelect = document.getElementById('report-dept-select');
+        const newStaffDeptSelect = document.getElementById('new-staff-dept');
+
+        if (reportDeptSelect) {
+          reportDeptSelect.innerHTML = '<option value="all">All Departments</option>' +
+            departmentsData.map(d => `<option value="${d.id}">${d.name} (${d.code})</option>`).join('');
+        }
+        if (newStaffDeptSelect) {
+          newStaffDeptSelect.innerHTML = departmentsData.map(d => `<option value="${d.id}">${d.name} (${d.code})</option>`).join('');
+        }
+
+        // Render Cards Grid
+        const grid = document.getElementById('departments-cards-grid');
+        if (grid) {
+          grid.innerHTML = departmentsData.map(d => `
+            <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-indigo-700 font-mono">${d.code}</span>
+                  <span class="text-[10px] text-slate-500">${d.floor} | ${d.building}</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-sm mt-1 mb-2">${d.name}</h4>
+                <div class="text-xs text-slate-500 space-y-0.5">
+                  <div>Head: <strong>${d.head_name || 'Dr. Head of Dept'}</strong></div>
+                  <div>Contact: ${d.contact_number || '+91 98450 00000'}</div>
+                </div>
+              </div>
+              <div class="mt-3 pt-2 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-600">
+                <span>Staff: <strong>${d.staff_count || 0}</strong></span>
+                <span>Requests: <strong>${d.request_count || 0}</strong></span>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+    }
+
+    function openAddDeptModal() {
+      document.getElementById('add-dept-modal').classList.remove('hidden');
+    }
+    function closeAddDeptModal() {
+      document.getElementById('add-dept-modal').classList.add('hidden');
+    }
+
+    async function handleAddDeptSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('new-dept-name').value;
+      const code = document.getElementById('new-dept-code').value;
+      const floor = document.getElementById('new-dept-floor').value;
+      const building = document.getElementById('new-dept-bldg').value;
+      const head_name = document.getElementById('new-dept-head').value;
+
+      const res = await apiRequest('/admin/departments', {
+        method: 'POST',
+        body: { name, code, floor, building, head_name }
+      });
+
+      if (res.success) {
+        showToast(res.message, 'success');
+        closeAddDeptModal();
+        loadDepartments();
+      } else {
+        showToast(res.message || 'Failed to add department', 'error');
+      }
+    }
+
+    async function loadFacilities() {
+      const res = await apiRequest('/admin/facilities');
+      if (res.success && res.data) {
+        facilitiesData = res.data;
+        const grid = document.getElementById('facilities-cards-grid');
+        if (grid) {
+          grid.innerHTML = facilitiesData.map(f => `
+            <div class="p-5 rounded-2xl border border-slate-200 bg-white hover:border-emerald-300 transition-all flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">${f.code}</span>
+                  <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">${f.status}</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-sm mb-1">${f.name}</h4>
+                <div class="text-xs text-slate-500 mb-3">${f.facility_type}</div>
+                
+                <div class="space-y-1 text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <div>License: <strong>${f.license_number}</strong></div>
+                  <div>Capacity: <strong>${f.capacity_tons_day} Tons/Day</strong></div>
+                  <div>Contact: ${f.contact_person} (${f.contact_phone})</div>
+                  <div class="text-[11px] text-slate-400 truncate">Addr: ${f.address}</div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-slate-100 text-xs font-mono text-slate-500 flex items-center justify-between">
+                <span>GPS: ${f.latitude}, ${f.longitude}</span>
+                <span class="text-emerald-700 font-bold">Authorized Hub</span>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+    }
+
+    function openAddFacilityModal() {
+      document.getElementById('add-fac-modal').classList.remove('hidden');
+    }
+    function closeAddFacilityModal() {
+      document.getElementById('add-fac-modal').classList.add('hidden');
+    }
+
+    async function handleAddFacSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('new-fac-name').value;
+      const code = document.getElementById('new-fac-code').value;
+      const facility_type = document.getElementById('new-fac-type').value;
+      const latitude = document.getElementById('new-fac-lat').value;
+      const longitude = document.getElementById('new-fac-lng').value;
+      const license_number = document.getElementById('new-fac-license').value;
+
+      const res = await apiRequest('/admin/facilities', {
+        method: 'POST',
+        body: { name, code, facility_type, latitude, longitude, license_number }
+      });
+
+      if (res.success) {
+        showToast(res.message, 'success');
+        closeAddFacilityModal();
+        loadFacilities();
+        reloadAdminMapData();
+      } else {
+        showToast(res.message || 'Failed to register facility', 'error');
+      }
+    }
+
+    function viewRequestAuditDetails(requestId) {
+      window.location.href = `/staff?viewRequest=${requestId}`;
+    }
+
+    function showImageModal(src, title) {
+      const modal = document.getElementById('admin-image-modal');
+      document.getElementById('admin-modal-img').src = src;
+      document.getElementById('admin-modal-img-title').innerText = title || 'Waste Photograph Inspection';
+      modal.classList.remove('hidden');
+    }
+
+    function closeImageModal() {
+      document.getElementById('admin-image-modal').classList.add('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      currentUser = requireAuth(['admin']);
+      if (!currentUser) return;
+
+      document.getElementById('admin-name-display').innerText = currentUser.full_name;
+
+      initAdminMap();
+      await loadDashboardStats();
+      await loadAllRequests();
+      await loadDepartments();
+      await loadFacilities();
+      await executeReportQuery();
+      await loadUsers();
+    });
+  </script>
+</body>
+
+</html>

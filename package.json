@@ -1,0 +1,28 @@
+{
+  "name": "smart-hospital-waste-management-system",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "description": "Smart Hospital Waste Management System - Waste Segregation, GPS Tracking, Role-Based Dashboards & Reporting",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "biomedical-waste",
+    "hospital",
+    "gps-tracking",
+    "segregation"
+  ],
+  "author": "Antigravity",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.5.0",
+    "sqlite3": "^6.0.1",
+    "xlsx": "^0.18.5"
+  }
+}

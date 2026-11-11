@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hospital Staff Portal | Smart Hospital Waste Management</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet CSS for Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  
+  <link rel="stylesheet" href="/css/style.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            heading: ['Plus Jakarta Sans', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+  <!-- Top Navigation -->
+  <header class="glass-nav sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <div class="flex items-center space-x-3">
+          <a href="/index.html" class="flex items-center space-x-2">
+            <div class="w-9 h-9 rounded-lg bg-sky-600 flex items-center justify-center text-white font-bold">
+              +
+            </div>
+            <div>
+              <span class="text-base font-heading font-extrabold text-slate-900 block leading-tight">Smart Hospital Waste</span>
+              <span class="text-[11px] font-semibold text-sky-600 block -mt-0.5">Clinical Staff Dashboard</span>
+            </div>
+          </a>
+        </div>
+
+        <!-- User Profile and Actions -->
+        <div class="flex items-center space-x-4">
+          <div class="hidden sm:flex items-center space-x-2 text-right">
+            <div>
+              <div id="staff-name-display" class="text-xs font-bold text-slate-900">Dr. Ananya Sharma</div>
+              <div id="staff-dept-display" class="text-[11px] text-slate-500">Emergency & Trauma Care</div>
+            </div>
+            <div class="w-9 h-9 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-xs border border-sky-200">
+              STF
+            </div>
+          </div>
+          
+          <button onclick="logout()" class="px-3 py-1.5 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg border border-rose-200 transition-all flex items-center space-x-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+            <span>Sign Out</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    
+    <!-- Welcome Header & Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      
+      <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center space-x-4">
+        <div class="w-12 h-12 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center flex-shrink-0">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 font-medium">My Total Requests</div>
+          <div id="stat-total-requests" class="text-2xl font-heading font-extrabold text-slate-900">0</div>
+        </div>
+      </div>
+
+      <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center space-x-4">
+        <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 font-medium">Pending Pickup</div>
+          <div id="stat-pending-requests" class="text-2xl font-heading font-extrabold text-amber-600">0</div>
+        </div>
+      </div>
+
+      <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center space-x-4">
+        <div class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 font-medium">In Transit / Processing</div>
+          <div id="stat-transit-requests" class="text-2xl font-heading font-extrabold text-indigo-600">0</div>
+        </div>
+      </div>
+
+      <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center space-x-4">
+        <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 font-medium">Completed / Certified</div>
+          <div id="stat-completed-requests" class="text-2xl font-heading font-extrabold text-emerald-600">0</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Main Content: Submit Request & Instructions Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <!-- New Request Submission Form (Left 7 Cols) -->
+      <div class="lg:col-span-7 bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200">
+        
+        <div class="flex items-center justify-between pb-6 mb-6 border-b border-slate-100">
+          <div>
+            <h2 class="text-xl font-heading font-extrabold text-slate-900">New Biomedical Waste Collection Request</h2>
+            <p class="text-xs text-slate-500 mt-1">Hospital Protocol: Waste must be photographed and verified prior to colour-coded segregation.</p>
+          </div>
+          <span class="px-3 py-1 bg-amber-100 text-amber-900 text-xs font-bold rounded-lg border border-amber-200">
+            Mandatory Verification
+          </span>
+        </div>
+
+        <form id="waste-request-form" onsubmit="handleRequestSubmit(event)" class="space-y-6">
+          
+          <!-- STEP 1: UPLOAD WASTE PHOTOGRAPH (MANDATORY FIRST STEP) -->
+          <div class="p-5 rounded-2xl bg-gradient-to-br from-sky-50/70 to-slate-50 border-2 border-sky-300 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <span class="w-6 h-6 rounded-full bg-sky-600 text-white flex items-center justify-center text-xs font-extrabold">1</span>
+                <label class="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  Step 1: Upload Waste Photograph (Mandatory) *
+                </label>
+              </div>
+              <span id="upload-status-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center space-x-1">
+                <span>⚠️ Photo Required</span>
+              </span>
+            </div>
+            
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Upload or capture an authentic photograph of the biomedical waste before segregating. The visual system will verify the waste and unlock the appropriate colour-coded bin.
+            </p>
+
+            <!-- Upload Container -->
+            <div class="flex flex-col sm:flex-row items-center gap-4">
+              <label class="w-full sm:flex-1 flex flex-col items-center justify-center p-4 border-2 border-dashed border-sky-300 hover:border-sky-500 bg-white hover:bg-sky-50/50 rounded-2xl cursor-pointer transition-all text-center">
+                <svg class="w-8 h-8 text-sky-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <span class="text-xs font-bold text-slate-800">Click to upload photo or capture via camera</span>
+                <span class="text-[10px] text-slate-400 mt-0.5">JPEG, PNG, WebP up to 10MB</span>
+                <input type="file" id="request-photo" accept="image/*" class="hidden" onchange="handleWastePhotoUpload(this)">
+              </label>
+
+              <!-- Image Preview & Analysis Card -->
+              <div id="image-preview-container" class="hidden w-full sm:w-44 h-32 rounded-2xl overflow-hidden border-2 border-emerald-400 relative shadow-md bg-white flex-shrink-0">
+                <img id="image-preview" src="" alt="Waste Preview" class="w-full h-full object-cover">
+                <button type="button" onclick="clearUploadImage()" class="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 text-[10px] shadow" title="Remove image">✕</button>
+                <span class="absolute bottom-0 inset-x-0 bg-emerald-600/90 text-white text-[10px] text-center py-0.5 font-bold">
+                  ✓ Photo Verified
+                </span>
+              </div>
+            </div>
+
+            <!-- Quick Preset Samples for Easy Testing -->
+            <div class="pt-2 border-t border-sky-100 flex flex-wrap items-center gap-2 text-[11px]">
+              <span class="text-slate-500 font-medium">Or attach standard photo sample:</span>
+              <button type="button" onclick="attachSampleAndUnlock('yellow')" class="px-2 py-1 rounded-lg bg-yellow-100 hover:bg-yellow-200 text-yellow-900 border border-yellow-300 font-semibold transition-all">
+                🟡 Cotton / Dressings
+              </button>
+              <button type="button" onclick="attachSampleAndUnlock('red')" class="px-2 py-1 rounded-lg bg-red-100 hover:bg-red-200 text-red-900 border border-red-300 font-semibold transition-all">
+                🔴 Gloves / IV Tube
+              </button>
+              <button type="button" onclick="attachSampleAndUnlock('white')" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-semibold transition-all">
+                ⚪ Needles / Sharps
+              </button>
+              <button type="button" onclick="attachSampleAndUnlock('blue')" class="px-2 py-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-900 border border-blue-300 font-semibold transition-all">
+                🔵 Vials / Implants
+              </button>
+            </div>
+
+            <!-- AI Classification Feedback Banner -->
+            <div id="ai-detection-banner" class="hidden p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-xs text-emerald-950 flex items-start space-x-2.5">
+              <svg class="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <div>
+                <strong id="ai-detection-title" class="font-bold">Image Verified!</strong>
+                <p id="ai-detection-desc" class="text-[11px] text-emerald-900 mt-0.5">Segregation unlocked. Category bin pre-selected below.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 2: WASTE SEGREGATION (LOCKED UNTIL STEP 1 IS COMPLETED) -->
+          <div id="segregation-step-container" class="space-y-3 opacity-50 pointer-events-none transition-all duration-300 relative">
+            
+            <!-- Lock Overlay (Displayed when no photo is uploaded) -->
+            <div id="segregation-lock-overlay" class="absolute inset-0 z-20 bg-slate-50/80 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center p-4 text-center">
+              <div class="w-10 h-10 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-lg mb-2 shadow-sm">
+                🔒
+              </div>
+              <strong class="text-xs font-bold text-slate-800">Segregation Locked</strong>
+              <p class="text-[11px] text-slate-500 max-w-xs mt-0.5">Please upload or capture a waste photograph in Step 1 to unlock colour-coded bin segregation.</p>
+            </div>
+
+            <div class="flex items-center space-x-2">
+              <span class="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-extrabold">2</span>
+              <label class="block text-xs font-bold text-slate-900 uppercase tracking-wider">
+                Step 2: Classify Into Colour-Coded Bin *
+              </label>
+            </div>
+            
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="bin-selector-grid">
+              
+              <!-- Yellow Bin Option -->
+              <div onclick="selectCategory(1, 'YELLOW')" id="bin-card-1" class="p-2.5 rounded-2xl border-2 border-yellow-400 bg-yellow-50 cursor-pointer hover:shadow-md transition-all text-center flex flex-col items-center group">
+                <div class="w-full h-16 rounded-xl overflow-hidden mb-2 border border-yellow-300">
+                  <img src="/images/waste/yellow-waste.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="Yellow Waste">
+                </div>
+                <span class="text-xs font-bold text-yellow-950 uppercase">YELLOW</span>
+                <span class="text-[10px] text-yellow-800 mt-0.5 line-clamp-1">Infectious Waste</span>
+              </div>
+
+              <!-- Red Bin Option -->
+              <div onclick="selectCategory(2, 'RED')" id="bin-card-2" class="p-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-red-50 hover:border-red-400 cursor-pointer hover:shadow-md transition-all text-center flex flex-col items-center group">
+                <div class="w-full h-16 rounded-xl overflow-hidden mb-2 border border-slate-200">
+                  <img src="/images/waste/red-waste.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="Red Waste">
+                </div>
+                <span class="text-xs font-bold text-red-950 uppercase">RED</span>
+                <span class="text-[10px] text-red-800 mt-0.5 line-clamp-1">Contaminated Plastic</span>
+              </div>
+
+              <!-- White Bin Option -->
+              <div onclick="selectCategory(3, 'WHITE')" id="bin-card-3" class="p-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-400 cursor-pointer hover:shadow-md transition-all text-center flex flex-col items-center group">
+                <div class="w-full h-16 rounded-xl overflow-hidden mb-2 border border-slate-200">
+                  <img src="/images/waste/white-waste.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="White Sharps">
+                </div>
+                <span class="text-xs font-bold text-slate-900 uppercase">WHITE</span>
+                <span class="text-[10px] text-slate-600 mt-0.5 line-clamp-1">Sharps &amp; Needles</span>
+              </div>
+
+              <!-- Blue Bin Option -->
+              <div onclick="selectCategory(4, 'BLUE')" id="bin-card-4" class="p-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-400 cursor-pointer hover:shadow-md transition-all text-center flex flex-col items-center group">
+                <div class="w-full h-16 rounded-xl overflow-hidden mb-2 border border-slate-200">
+                  <img src="/images/waste/blue-waste.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="Blue Glass">
+                </div>
+                <span class="text-xs font-bold text-blue-950 uppercase">BLUE</span>
+                <span class="text-[10px] text-blue-800 mt-0.5 line-clamp-1">Glassware &amp; Metal</span>
+              </div>
+
+            </div>
+            <input type="hidden" id="selected-category-id" value="1">
+
+            <!-- Dynamic Category Detail / Instruction Callout with Connected Picture -->
+            <div id="category-instruction-box" class="p-4 rounded-2xl bg-yellow-50 border border-yellow-200 text-xs text-yellow-900 flex flex-col sm:flex-row items-center gap-4">
+              <div class="w-full sm:w-36 h-28 rounded-xl overflow-hidden border border-yellow-300 flex-shrink-0 shadow-sm">
+                <img id="callout-cat-img" src="/images/waste/yellow-waste.jpg" alt="Selected Category Example" class="w-full h-full object-cover">
+              </div>
+              <div class="flex-1 space-y-1.5">
+                <div class="flex items-center space-x-2 font-bold text-yellow-950">
+                  <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                  <span id="callout-cat-name">YELLOW: Infectious and Pathological Waste</span>
+                </div>
+                <p id="callout-cat-desc" class="text-yellow-800">
+                  Human anatomical waste, blood-contaminated cotton dressings, expired medicines, and laboratory culture specimens.
+                </p>
+                <div id="callout-cat-rules" class="text-[11px] font-semibold text-yellow-900 pt-1 border-t border-yellow-200">
+                  Rule: Must be placed in non-chlorinated yellow plastic bags. Seal with zip-tie when 3/4th full.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 3: DEPARTMENT, ROOM & QUANTITY -->
+          <div class="space-y-4 pt-2">
+            <div class="flex items-center space-x-2">
+              <span class="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-extrabold">3</span>
+              <label class="block text-xs font-bold text-slate-900 uppercase tracking-wider">
+                Step 3: Location Details &amp; Quantity *
+              </label>
+            </div>
+
+            <!-- Department and Room Number -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Hospital Department *
+                </label>
+                <select id="request-department" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm">
+                  <!-- Dynamically populated -->
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Room / Ward / OT Number *
+                </label>
+                <input type="text" id="request-room" required placeholder="e.g. Trauma Bay 2 / ICU Bed 14" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm">
+              </div>
+            </div>
+
+            <!-- Weight & Quantity -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Estimated Weight (kg) *
+                </label>
+                <input type="number" step="0.1" min="0.1" max="250" id="request-weight" required placeholder="e.g. 4.5" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Number of Bags / Bins
+                </label>
+                <input type="number" min="1" max="50" id="request-bags" value="1" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                  Priority Level
+                </label>
+                <select id="request-priority" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm">
+                  <option value="Normal">Normal Pickup</option>
+                  <option value="High">High Priority</option>
+                  <option value="Urgent">Urgent / Immediate Biohazard</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- GPS Location Capture -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-bold text-slate-700 uppercase">
+                  Collection GPS Location Coordinates *
+                </label>
+                <button type="button" onclick="captureDeviceGPS()" class="text-xs font-semibold text-sky-600 hover:text-sky-700 flex items-center space-x-1">
+                  <svg class="w-4 h-4 text-emerald-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
+                  <span>Capture Device GPS</span>
+                </button>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <input type="text" id="gps-lat" readonly required class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono text-slate-700" value="12.9716">
+                </div>
+                <div>
+                  <input type="text" id="gps-lng" readonly required class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono text-slate-700" value="77.5946">
+                </div>
+              </div>
+              
+              <div id="gps-status-text" class="text-[11px] text-slate-500">
+                Campus GPS Coordinates Ready
+              </div>
+            </div>
+
+            <!-- Notes -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                Handling Warnings / Notes
+              </label>
+              <input type="text" id="request-notes" placeholder="e.g. Contains infectious swabs, handle with protective apron" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm">
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" id="submit-request-btn" class="w-full py-3.5 px-4 rounded-xl text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 shadow-lg shadow-sky-600/30 transition-all flex items-center justify-center space-x-2">
+            <span>Submit Collection Request</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+          </button>
+
+        </form>
+
+          <!-- GPS Location Capture -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                Collection GPS Location Coordinates *
+              </label>
+              <button type="button" onclick="captureDeviceGPS()" class="text-xs font-semibold text-sky-600 hover:text-sky-700 flex items-center space-x-1">
+                <svg class="w-4 h-4 text-emerald-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
+                <span>Capture Device GPS</span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <input type="text" id="gps-lat" readonly required class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono text-slate-700" value="12.9716">
+              </div>
+              <div>
+                <input type="text" id="gps-lng" readonly required class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono text-slate-700" value="77.5946">
+              </div>
+            </div>
+            
+            <div id="gps-status-text" class="text-[11px] text-slate-500">
+              Campus GPS Coordinates Ready (Click 'Capture Device GPS' to query live browser sensor)
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div>
+            <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+              Handling Instructions / Warnings
+            </label>
+            <input type="text" id="request-notes" placeholder="e.g. Contains cytotoxic residue, handle with double gloves" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm">
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" id="submit-request-btn" class="w-full py-3.5 px-4 rounded-xl text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 shadow-lg shadow-sky-600/30 transition-all flex items-center justify-center space-x-2">
+            <span>Submit Collection Request</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+          </button>
+
+        </form>
+
+      </div>
+
+      <!-- Right 5 Cols: Waste Categories Reference Guide -->
+      <div class="lg:col-span-5 space-y-6">
+        
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="text-base font-heading font-extrabold text-slate-900">Segregation Quick Rules</h3>
+            <span class="text-xs text-sky-600 font-semibold">CPCB Protocol</span>
+          </div>
+
+          <!-- Accordion / Details for Bins -->
+          <div class="space-y-3 text-xs">
+            
+            <div class="p-3.5 rounded-xl border border-yellow-300 bg-yellow-50/70">
+              <div class="font-bold text-yellow-950 flex items-center justify-between">
+                <span>YELLOW BIN (Infectious)</span>
+                <span class="text-[10px] uppercase px-2 py-0.5 bg-yellow-200 rounded">Incineration</span>
+              </div>
+              <p class="text-yellow-900 mt-1">Organs, dressings, swabs, expired meds, laboratory specimen cultures.</p>
+              <div class="text-[11px] font-semibold text-yellow-800 mt-1">Rule: Non-chlorinated yellow bag. No sharps!</div>
+            </div>
+
+            <div class="p-3.5 rounded-xl border border-red-300 bg-red-50/70">
+              <div class="font-bold text-red-950 flex items-center justify-between">
+                <span>RED BIN (Contaminated Plastics)</span>
+                <span class="text-[10px] uppercase px-2 py-0.5 bg-red-200 rounded">Autoclave</span>
+              </div>
+              <p class="text-red-900 mt-1">Gloves, IV bottles/tubes, urinary catheters, syringes without needles.</p>
+              <div class="text-[11px] font-semibold text-red-800 mt-1">Rule: Empty bodily fluids first. Autoclaved & shredded.</div>
+            </div>
+
+            <div class="p-3.5 rounded-xl border border-slate-400 bg-slate-50">
+              <div class="font-bold text-slate-900 flex items-center justify-between">
+                <span>WHITE TRANSLUCENT (Sharps)</span>
+                <span class="text-[10px] uppercase px-2 py-0.5 bg-slate-200 rounded">Puncture-Proof</span>
+              </div>
+              <p class="text-slate-700 mt-1">Hypodermic needles, scalpels, blades, trocars, contaminated metal pins.</p>
+              <div class="text-[11px] font-semibold text-slate-800 mt-1">Rule: Rigid tamper-proof container. Never recap needles!</div>
+            </div>
+
+            <div class="p-3.5 rounded-xl border border-blue-300 bg-blue-50/70">
+              <div class="font-bold text-blue-950 flex items-center justify-between">
+                <span>BLUE BOX (Glass & Implants)</span>
+                <span class="text-[10px] uppercase px-2 py-0.5 bg-blue-200 rounded">Disinfection</span>
+              </div>
+              <p class="text-blue-900 mt-1">Glass vials, ampoules, glass slides, metal orthopedic screws/plates.</p>
+              <div class="text-[11px] font-semibold text-blue-800 mt-1">Rule: Puncture-resistant blue box. Sodium hypochlorite.</div>
+            </div>
+
+            <div class="p-3 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-950">
+              <div class="font-bold flex items-center justify-between">
+                <span>GREEN / BLACK (Municipal General Waste)</span>
+                <span class="text-[10px] uppercase px-2 py-0.5 bg-emerald-200 rounded">Non-BMW</span>
+              </div>
+              <p class="text-[11px] text-emerald-900 mt-0.5">
+                Food waste, peels, kitchen waste (Green) & stationery, packaging (Black). KEEP STRICTLY SEPARATE!
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Active & Previous Collection History Section -->
+    <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200">
+      
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-6 mb-6 border-b border-slate-100 gap-4">
+        <div>
+          <h3 class="text-xl font-heading font-extrabold text-slate-900">My Waste Collection Requests</h3>
+          <p class="text-xs text-slate-500 mt-0.5">Track real-time status across the 8-stage collection and treatment lifecycle</p>
+        </div>
+
+        <!-- Filter tabs -->
+        <div class="flex items-center space-x-2 text-xs">
+          <button onclick="filterMyRequests('all')" class="req-filter-btn px-3 py-1.5 rounded-lg bg-slate-900 text-white font-semibold">All</button>
+          <button onclick="filterMyRequests('active')" class="req-filter-btn px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 font-semibold">Active</button>
+          <button onclick="filterMyRequests('completed')" class="req-filter-btn px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 font-semibold">Completed</button>
+        </div>
+      </div>
+
+      <!-- Requests Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider">
+              <th class="py-3 px-3">Request #</th>
+              <th class="py-3 px-3">Photo</th>
+              <th class="py-3 px-3">Date &amp; Time</th>
+              <th class="py-3 px-3">Category</th>
+              <th class="py-3 px-3">Room / Location</th>
+              <th class="py-3 px-3">Weight (kg)</th>
+              <th class="py-3 px-3">Collector</th>
+              <th class="py-3 px-3">Current Status</th>
+              <th class="py-3 px-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="my-requests-table-body" class="divide-y divide-slate-100">
+            <tr>
+              <td colspan="9" class="text-center py-8 text-slate-400">Loading collection records...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- 8-Stage Lifecycle Progress Stepper Modal -->
+  <div id="lifecycle-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-8 shadow-2xl relative border border-slate-200 max-h-[90vh] overflow-y-auto">
+      
+      <button onclick="closeLifecycleModal()" class="absolute top-6 right-6 text-slate-400 hover:text-slate-600">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+
+      <div class="flex items-center space-x-3 mb-6 pb-4 border-b border-slate-100">
+        <div id="modal-cat-badge" class="w-10 h-10 rounded-xl bg-yellow-100 text-yellow-800 flex items-center justify-center font-extrabold text-sm border border-yellow-300">
+          BIO
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h3 id="modal-req-number" class="text-lg font-heading font-extrabold text-slate-900">BMW-2026-001</h3>
+            <span id="modal-priority-badge" class="px-2 py-0.5 bg-rose-100 text-rose-700 text-[10px] font-bold rounded">Urgent</span>
+          </div>
+          <div id="modal-req-subtitle" class="text-xs text-slate-500">Emergency & Trauma Care | Room Trauma Bay 2</div>
+        </div>
+      </div>
+
+      <!-- 8-Step Timeline Horizontal Stepper -->
+      <div class="mb-8">
+        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4">Eight-Stage Workflow Progress</h4>
+        <div class="grid grid-cols-4 sm:grid-cols-8 gap-2 text-center" id="stepper-stages-container">
+          <!-- Populated dynamically with 8 stages -->
+        </div>
+      </div>
+
+      <!-- Request Details Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs mb-6">
+        <div>
+          <span class="text-slate-400 block font-medium">Estimated Weight:</span>
+          <strong id="modal-est-weight" class="text-slate-900 font-bold">4.8 kg</strong>
+        </div>
+        <div>
+          <span class="text-slate-400 block font-medium">Actual Verified Weight:</span>
+          <strong id="modal-act-weight" class="text-slate-900 font-bold">5.1 kg</strong>
+        </div>
+        <div>
+          <span class="text-slate-400 block font-medium">Collector Assigned:</span>
+          <strong id="modal-collector-info" class="text-slate-900 font-bold">Rajesh Kumar</strong>
+        </div>
+        <div>
+          <span class="text-slate-400 block font-medium">Vehicle Number:</span>
+          <strong id="modal-vehicle-info" class="text-slate-900 font-bold">KA-05-EB-4421</strong>
+        </div>
+        <div>
+          <span class="text-slate-400 block font-medium">GPS Coordinates:</span>
+          <strong id="modal-gps-info" class="text-slate-900 font-mono text-[11px]">12.9716, 77.5946</strong>
+        </div>
+        <div>
+          <span class="text-slate-400 block font-medium">Treatment Facility:</span>
+          <strong id="modal-facility-info" class="text-slate-900 font-bold">Apex CBWTF</strong>
+        </div>
+      </div>
+
+      <!-- Photos (Waste photo + Proof Photo) -->
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <div>
+          <span class="text-xs font-bold text-slate-700 block mb-2">Staff Uploaded Waste Photo:</span>
+          <div id="modal-waste-photo-box" class="w-full h-36 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden">
+            <span class="text-xs text-slate-400">No Photo Uploaded</span>
+          </div>
+        </div>
+        <div>
+          <span class="text-xs font-bold text-slate-700 block mb-2">Collector Proof Photo:</span>
+          <div id="modal-proof-photo-box" class="w-full h-36 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden">
+            <span class="text-xs text-slate-400">Pending Collector Proof</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Audit History Milestones -->
+      <div>
+        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-3">Audit Milestone Log</h4>
+        <div id="modal-history-list" class="space-y-2 max-h-48 overflow-y-auto">
+          <!-- History entries -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    let currentUser = null;
+    let myRequestsData = [];
+    let currentFilter = 'all';
+    let imageUploaded = false;
+    let attachedSamplePhotoUrl = null;
+
+    const CATEGORIES = {
+      1: { name: 'Infectious & Pathological Waste', code: 'YELLOW', image: '/images/waste/yellow-waste.jpg', desc: 'Human anatomical waste, blood-contaminated cotton dressings, expired medicines, and laboratory culture specimens.', rule: 'Must be placed in non-chlorinated yellow plastic bags. Seal with zip-tie when 3/4th full.' },
+      2: { name: 'Contaminated Recyclable Plastics', code: 'RED', image: '/images/waste/red-waste.jpg', desc: 'Contaminated disposable gloves, IV tubes, catheters, urinary bags, and syringes without needles.', rule: 'Empty fluids before disposal. Autoclaved/microwaved followed by shredding.' },
+      3: { name: 'Sharps & Contaminated Metals', code: 'WHITE', image: '/images/waste/white-waste.jpg', desc: 'Hypodermic needles, scalpels, surgical disposable blades, and contaminated metal sharp instruments.', rule: 'Rigid puncture-proof, tamper-proof translucent sharps containers. Never recap needles!' },
+      4: { name: 'Glassware & Metallic Implants', code: 'BLUE', image: '/images/waste/blue-waste.jpg', desc: 'Medicine glass bottles, vials, ampoules, glass slides, and metallic orthopedic body implants.', rule: 'Puncture-resistant blue box or container. Sodium hypochlorite immersion.' }
+    };
+
+    function selectCategory(id, code) {
+      if (!imageUploaded) {
+        showToast('Please upload or capture a waste photograph in Step 1 first!', 'warning');
+        return;
+      }
+
+      document.getElementById('selected-category-id').value = id;
+
+      for (let i = 1; i <= 4; i++) {
+        const card = document.getElementById(`bin-card-${i}`);
+        card.classList.remove('border-2', 'border-yellow-400', 'border-red-400', 'border-slate-500', 'border-blue-400', 'bg-yellow-50', 'bg-red-50', 'bg-slate-50', 'bg-blue-50', 'ring-4', 'ring-sky-200');
+        card.classList.add('border', 'border-slate-200', 'bg-white');
+      }
+
+      const activeCard = document.getElementById(`bin-card-${id}`);
+      activeCard.classList.remove('border-slate-200', 'bg-white');
+      activeCard.classList.add('border-2', 'ring-4', 'ring-sky-200');
+
+      const infoBox = document.getElementById('category-instruction-box');
+      const cat = CATEGORIES[id];
+
+      document.getElementById('callout-cat-name').innerText = `${cat.code}: ${cat.name}`;
+      document.getElementById('callout-cat-desc').innerText = cat.desc;
+      document.getElementById('callout-cat-rules').innerText = `Rule: ${cat.rule}`;
+      document.getElementById('callout-cat-img').src = cat.image;
+
+      if (id === 1) {
+        activeCard.classList.add('border-yellow-400', 'bg-yellow-50');
+        infoBox.className = 'p-4 rounded-2xl bg-yellow-50 border border-yellow-200 text-xs text-yellow-900 flex flex-col sm:flex-row items-center gap-4';
+      } else if (id === 2) {
+        activeCard.classList.add('border-red-400', 'bg-red-50');
+        infoBox.className = 'p-4 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-900 flex flex-col sm:flex-row items-center gap-4';
+      } else if (id === 3) {
+        activeCard.classList.add('border-slate-500', 'bg-slate-50');
+        infoBox.className = 'p-4 rounded-2xl bg-slate-50 border border-slate-300 text-xs text-slate-900 flex flex-col sm:flex-row items-center gap-4';
+      } else if (id === 4) {
+        activeCard.classList.add('border-blue-400', 'bg-blue-50');
+        infoBox.className = 'p-4 rounded-2xl bg-blue-50 border border-blue-200 text-xs text-blue-900 flex flex-col sm:flex-row items-center gap-4';
+      }
+    }
+
+    // Handles user file upload or camera capture
+    function handleWastePhotoUpload(input) {
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+          const name = file.name.toLowerCase();
+          let detectedCategory = 1; // Default yellow
+          let desc = 'Detected anatomical or infectious waste materials.';
+
+          if (name.includes('red') || name.includes('glove') || name.includes('tube') || name.includes('plastic') || name.includes('saline')) {
+            detectedCategory = 2;
+            desc = 'Detected contaminated medical plastic consumables (gloves/tubes).';
+          } else if (name.includes('white') || name.includes('sharp') || name.includes('needle') || name.includes('blade') || name.includes('scalpel')) {
+            detectedCategory = 3;
+            desc = 'Detected puncture-risk sharp instruments (needles/blades).';
+          } else if (name.includes('blue') || name.includes('glass') || name.includes('vial') || name.includes('ampoule') || name.includes('implant')) {
+            detectedCategory = 4;
+            desc = 'Detected medical glassware or metallic surgical implants.';
+          }
+
+          attachedSamplePhotoUrl = null;
+          unlockSegregation(e.target.result, detectedCategory, desc);
+        };
+
+        reader.readAsDataURL(file);
+      }
+    }
+
+    // Quick-attach standard photo sample
+    async function attachSampleAndUnlock(type) {
+      const typeMap = { 'yellow': 1, 'red': 2, 'white': 3, 'blue': 4 };
+      const catId = typeMap[type] || 1;
+      const cat = CATEGORIES[catId];
+      if (!cat) return;
+
+      try {
+        showToast(`Verifying & attaching ${cat.code} photo sample...`, 'info');
+        const res = await fetch(cat.image);
+        const blob = await res.blob();
+        const file = new File([blob], `${type}-waste.jpg`, { type: 'image/jpeg' });
+
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        document.getElementById('request-photo').files = dataTransfer.files;
+
+        attachedSamplePhotoUrl = cat.image;
+        unlockSegregation(cat.image, catId, `Standard photo verified for ${cat.name}.`);
+      } catch (err) {
+        showToast('Unable to attach sample: ' + err.message, 'error');
+      }
+    }
+
+    // Unlocks Step 2 (Waste Segregation Bins)
+    function unlockSegregation(imgSrc, recommendedCatId, desc) {
+      imageUploaded = true;
+
+      // Update image preview
+      document.getElementById('image-preview').src = imgSrc;
+      document.getElementById('image-preview-container').classList.remove('hidden');
+
+      // Update badge
+      const badge = document.getElementById('upload-status-badge');
+      badge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center space-x-1';
+      badge.innerHTML = '<span>✓ Photo Verified &amp; Unlocked</span>';
+
+      // Remove lock from Step 2
+      const lockOverlay = document.getElementById('segregation-lock-overlay');
+      if (lockOverlay) lockOverlay.classList.add('hidden');
+
+      const stepContainer = document.getElementById('segregation-step-container');
+      stepContainer.classList.remove('opacity-50', 'pointer-events-none');
+      stepContainer.classList.add('opacity-100');
+
+      // Display AI detection banner
+      const aiBanner = document.getElementById('ai-detection-banner');
+      const aiTitle = document.getElementById('ai-detection-title');
+      const aiDesc = document.getElementById('ai-detection-desc');
+
+      aiTitle.innerText = `Visual Verification Succeeded: Segregation Unlocked!`;
+      aiDesc.innerText = `${desc || 'Photo verified.'} Recommended bin: ${CATEGORIES[recommendedCatId].code} (${CATEGORIES[recommendedCatId].color}).`;
+      aiBanner.classList.remove('hidden');
+
+      // Pre-select recommended bin
+      selectCategory(recommendedCatId, CATEGORIES[recommendedCatId].code);
+      showToast('Waste photograph verified! Segregation bins are now unlocked.', 'success');
+    }
+
+    // Locks Step 2 again if image is removed
+    function lockSegregation() {
+      imageUploaded = false;
+      attachedSamplePhotoUrl = null;
+
+      document.getElementById('request-photo').value = '';
+      document.getElementById('image-preview-container').classList.add('hidden');
+      document.getElementById('image-preview').src = '';
+
+      const badge = document.getElementById('upload-status-badge');
+      badge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center space-x-1';
+      badge.innerHTML = '<span>⚠️ Photo Required</span>';
+
+      const lockOverlay = document.getElementById('segregation-lock-overlay');
+      if (lockOverlay) lockOverlay.classList.remove('hidden');
+
+      const stepContainer = document.getElementById('segregation-step-container');
+      stepContainer.classList.add('opacity-50', 'pointer-events-none');
+      stepContainer.classList.remove('opacity-100');
+
+      const aiBanner = document.getElementById('ai-detection-banner');
+      aiBanner.classList.add('hidden');
+
+      showToast('Waste image removed. Segregation is locked until a photo is uploaded.', 'info');
+    }
+
+    function clearUploadImage() {
+      lockSegregation();
+    }
+
+    async function captureDeviceGPS() {
+      const statusText = document.getElementById('gps-status-text');
+      statusText.innerText = 'Requesting browser GPS sensor permission...';
+
+      try {
+        const coords = await getDeviceGPSCoordinates();
+        document.getElementById('gps-lat').value = coords.latitude.toFixed(6);
+        document.getElementById('gps-lng').value = coords.longitude.toFixed(6);
+        statusText.innerHTML = `<span class="text-emerald-600 font-semibold">✓ Live GPS Captured: Lat ${coords.latitude.toFixed(4)}, Lng ${coords.longitude.toFixed(4)} (Accuracy: ±${Math.round(coords.accuracy)}m)</span>`;
+        showToast('Real device GPS captured successfully!', 'success');
+      } catch (err) {
+        statusText.innerHTML = `<span class="text-amber-600">${err.message}. Using default campus coordinates.</span>`;
+        showToast(err.message, 'warning');
+      }
+    }
+
+    async function loadDepartments() {
+      const res = await apiRequest('/waste/departments');
+      if (res.success && res.data) {
+        const select = document.getElementById('request-department');
+        select.innerHTML = res.data.map(d => `<option value="${d.id}">${d.name} (${d.code} - ${d.floor})</option>`).join('');
+      }
+    }
+
+    async function loadMyRequests() {
+      const res = await apiRequest('/waste/my-requests');
+      if (res.success && res.data) {
+        myRequestsData = res.data;
+        renderMyRequests();
+        updateStats();
+      }
+    }
+
+    function updateStats() {
+      const total = myRequestsData.length;
+      let pending = 0;
+      let inTransit = 0;
+      let completed = 0;
+
+      myRequestsData.forEach(r => {
+        if (r.status === 'Request Submitted' || r.status === 'Request Accepted' || r.status === 'Collector Assigned') {
+          pending++;
+        } else if (r.status === 'Completed') {
+          completed++;
+        } else {
+          inTransit++;
+        }
+      });
+
+      document.getElementById('stat-total-requests').innerText = total;
+      document.getElementById('stat-pending-requests').innerText = pending;
+      document.getElementById('stat-transit-requests').innerText = inTransit;
+      document.getElementById('stat-completed-requests').innerText = completed;
+    }
+
+    function filterMyRequests(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.req-filter-btn').forEach(btn => {
+        btn.classList.remove('bg-slate-900', 'text-white');
+        btn.classList.add('bg-slate-100', 'text-slate-600');
+      });
+      event.target.classList.remove('bg-slate-100', 'text-slate-600');
+      event.target.classList.add('bg-slate-900', 'text-white');
+      renderMyRequests();
+    }
+
+    function renderMyRequests() {
+      const tbody = document.getElementById('my-requests-table-body');
+      let filtered = myRequestsData;
+
+      if (currentFilter === 'active') {
+        filtered = myRequestsData.filter(r => r.status !== 'Completed');
+      } else if (currentFilter === 'completed') {
+        filtered = myRequestsData.filter(r => r.status === 'Completed');
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-slate-400">No requests found under this filter.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(r => `
+        <tr class="hover:bg-slate-50/80 transition-colors">
+          <td class="py-3 px-3 font-semibold text-sky-700">${r.request_number}</td>
+          <td class="py-3 px-3">
+            <img src="${r.waste_photo || '/images/waste/yellow-waste.jpg'}" class="w-10 h-10 rounded-lg object-cover border border-slate-200 cursor-pointer shadow-sm hover:scale-110 transition-transform" onclick="openLifecycleModal(${r.id})" title="View waste photo &amp; audit">
+          </td>
+          <td class="py-3 px-3 text-slate-500">${formatDate(r.created_at)}</td>
+          <td class="py-3 px-3">${getCategoryBadge(r.category_color, r.category_name)}</td>
+          <td class="py-3 px-3">
+            <div class="font-medium text-slate-800">${r.room_number}</div>
+            <div class="text-[10px] text-slate-400">${r.department_name}</div>
+          </td>
+          <td class="py-3 px-3">
+            <span class="font-bold text-slate-800">${r.actual_weight_kg || r.estimated_weight_kg} kg</span>
+            <span class="text-[10px] text-slate-400 block">${r.actual_weight_kg ? '(Verified)' : '(Est.)'}</span>
+          </td>
+          <td class="py-3 px-3">
+            ${r.collector_name ? `<span class="font-medium text-slate-800">${r.collector_name}</span><span class="text-[10px] text-slate-400 block">${r.vehicle_number || ''}</span>` : '<span class="text-slate-400 italic">Unassigned</span>'}
+          </td>
+          <td class="py-3 px-3">${getStageBadge(r.status)}</td>
+          <td class="py-3 px-3 text-right">
+            <button onclick="openLifecycleModal(${r.id})" class="px-2.5 py-1 text-xs font-semibold text-sky-600 hover:text-sky-800 bg-sky-50 hover:bg-sky-100 rounded-lg transition-all">
+              Track 8 Stages
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function handleRequestSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submit-request-btn');
+      btn.disabled = true;
+      btn.innerText = 'Submitting Request...';
+
+      if (!imageUploaded) {
+        showToast('Mandatory Policy: Waste should be segregated only after uploading an image! Please upload a photo in Step 1.', 'warning');
+        btn.disabled = false;
+        btn.innerText = 'Submit Collection Request';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('category_id', document.getElementById('selected-category-id').value);
+      formData.append('department_id', document.getElementById('request-department').value);
+      formData.append('room_number', document.getElementById('request-room').value);
+      formData.append('estimated_weight_kg', document.getElementById('request-weight').value);
+      formData.append('number_of_bags', document.getElementById('request-bags').value);
+      formData.append('priority', document.getElementById('request-priority').value);
+      formData.append('collection_lat', document.getElementById('gps-lat').value);
+      formData.append('collection_lng', document.getElementById('gps-lng').value);
+      formData.append('notes', document.getElementById('request-notes').value);
+
+      const fileInput = document.getElementById('request-photo');
+      if (fileInput.files[0]) {
+        formData.append('waste_photo', fileInput.files[0]);
+      } else if (attachedSamplePhotoUrl) {
+        formData.append('waste_photo_url', attachedSamplePhotoUrl);
+      }
+
+      const res = await apiRequest('/waste/request', {
+        method: 'POST',
+        body: formData
+      });
+
+      btn.disabled = false;
+      btn.innerText = 'Submit Collection Request';
+
+      if (res.success) {
+        showToast(res.message, 'success');
+        document.getElementById('waste-request-form').reset();
+        lockSegregation();
+        loadMyRequests();
+      } else {
+        showToast(res.message || 'Submission failed', 'error');
+      }
+    }
+
+    async function openLifecycleModal(requestId) {
+      const res = await apiRequest(`/requests/${requestId}`);
+      if (!res.success || !res.data) {
+        showToast('Unable to load request details', 'error');
+        return;
+      }
+
+      const r = res.data.request;
+      const history = res.data.history || [];
+      const stages = res.data.stages || WORKFLOW_STAGES;
+
+      document.getElementById('modal-req-number').innerText = r.request_number;
+      document.getElementById('modal-priority-badge').innerText = r.priority;
+      document.getElementById('modal-req-subtitle').innerText = `${r.department_name} | Room: ${r.room_number}`;
+      document.getElementById('modal-est-weight').innerText = `${r.estimated_weight_kg} kg`;
+      document.getElementById('modal-act-weight').innerText = r.actual_weight_kg ? `${r.actual_weight_kg} kg` : 'Pending Collector Measurement';
+      document.getElementById('modal-collector-info').innerText = r.collector_name || 'Pending Assignment';
+      document.getElementById('modal-vehicle-info').innerText = r.vehicle_number || 'N/A';
+      document.getElementById('modal-gps-info').innerText = `${r.collection_lat || 12.9716}, ${r.collection_lng || 77.5946}`;
+      document.getElementById('modal-facility-info').innerText = r.facility_name || 'Pending Transfer to CBWTF';
+
+      // Photos
+      const wasteBox = document.getElementById('modal-waste-photo-box');
+      if (r.waste_photo) {
+        wasteBox.innerHTML = `<img src="${r.waste_photo}" class="w-full h-full object-cover">`;
+      } else {
+        wasteBox.innerHTML = `<span class="text-xs text-slate-400">No Photo Uploaded</span>`;
+      }
+
+      const proofBox = document.getElementById('modal-proof-photo-box');
+      if (r.proof_photo) {
+        proofBox.innerHTML = `<img src="${r.proof_photo}" class="w-full h-full object-cover">`;
+      } else {
+        proofBox.innerHTML = `<span class="text-xs text-slate-400">Pending Collector Proof</span>`;
+      }
+
+      // Render 8 Stages Horizontal
+      const currentStageIndex = stages.indexOf(r.status);
+      const stagesContainer = document.getElementById('stepper-stages-container');
+      stagesContainer.innerHTML = stages.map((stg, idx) => {
+        const isPassed = idx < currentStageIndex;
+        const isCurrent = idx === currentStageIndex;
+        let circleBg = 'bg-slate-200 text-slate-600';
+        let labelColor = 'text-slate-400';
+
+        if (isPassed) {
+          circleBg = 'bg-emerald-500 text-white';
+          labelColor = 'text-emerald-700 font-semibold';
+        } else if (isCurrent) {
+          circleBg = 'bg-sky-600 text-white ring-4 ring-sky-100';
+          labelColor = 'text-sky-700 font-bold';
+        }
+
+        return `
+          <div class="flex flex-col items-center">
+            <div class="w-7 h-7 rounded-full ${circleBg} flex items-center justify-center text-xs font-bold mb-1">
+              ${isPassed ? '✓' : idx + 1}
+            </div>
+            <span class="text-[9px] ${labelColor} leading-tight line-clamp-2">${stg}</span>
+          </div>
+        `;
+      }).join('');
+
+      // Render History Log
+      const histList = document.getElementById('modal-history-list');
+      histList.innerHTML = history.map(h => `
+        <div class="flex items-start space-x-2 text-xs p-2 rounded-lg bg-slate-50 border border-slate-100">
+          <span class="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1.5 flex-shrink-0"></span>
+          <div class="flex-1">
+            <div class="flex items-center justify-between">
+              <strong class="text-slate-800">${h.status}</strong>
+              <span class="text-[10px] text-slate-400">${formatDate(h.created_at)}</span>
+            </div>
+            <p class="text-[11px] text-slate-600 mt-0.5">${h.notes || ''}</p>
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('lifecycle-modal').classList.remove('hidden');
+    }
+
+    function closeLifecycleModal() {
+      document.getElementById('lifecycle-modal').classList.add('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      currentUser = requireAuth(['staff', 'admin']);
+      if (!currentUser) return;
+
+      document.getElementById('staff-name-display').innerText = currentUser.full_name;
+      if (currentUser.profile && currentUser.profile.department_name) {
+        document.getElementById('staff-dept-display').innerText = currentUser.profile.department_name;
+      }
+
+      await loadDepartments();
+      await loadMyRequests();
+      lockSegregation();
+    });
+  </script>
+</body>
+</html>
+
