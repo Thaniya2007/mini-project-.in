@@ -1,10 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const upload = require('../utils/uploader');
-const { get, run, all } = require('../db/database');
+const { saveUploadedFile } = require('../db/database');
+const {
+  CollectionRequest,
+  WasteRecord,
+  CollectionHistory,
+  GpsLocation,
+  User,
+  getNextId
+} = require('../db/models');
+const { enrichRequests } = require('../db/helpers');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 
-// The 8 official stages in order
 const VALID_WORKFLOW_STAGES = [
   'Request Submitted',
   'Request Accepted',
@@ -16,31 +24,31 @@ const VALID_WORKFLOW_STAGES = [
   'Completed'
 ];
 
+const PRIORITY_RANK = { Urgent: 1, High: 2, Normal: 3 };
+const ASSIGNED_STATUS_RANK = {
+  'Collection in Progress': 1,
+  'Collector Assigned': 2,
+  'Waste Collected': 3,
+  'Transported': 4,
+  'Handed Over to Authorized Treatment Facility': 5,
+  'Completed': 6
+};
+
 // GET /api/requests/pending - Available requests for collectors to accept
 router.get('/pending', authenticateToken, requireRole(['collector', 'admin']), async (req, res) => {
   try {
-    const requests = await all(`
-      SELECT 
-        cr.*,
-        c.name as category_name, c.color as category_color, c.hex_color as category_hex, c.badge_class,
-        d.name as department_name, d.code as department_code, d.floor, d.building,
-        u_staff.full_name as staff_name, u_staff.phone as staff_phone,
-        stf.staff_code, stf.designation as staff_designation
-      FROM collection_requests cr
-      LEFT JOIN waste_categories c ON cr.category_id = c.id
-      LEFT JOIN departments d ON cr.department_id = d.id
-      LEFT JOIN staff stf ON cr.staff_id = stf.id
-      LEFT JOIN users u_staff ON stf.user_id = u_staff.id
-      WHERE cr.status IN ('Request Submitted', 'Request Accepted')
-      ORDER BY 
-        CASE cr.priority 
-          WHEN 'Urgent' THEN 1 
-          WHEN 'High' THEN 2 
-          ELSE 3 
-        END,
-        cr.created_at DESC
-    `);
+    const raw = await CollectionRequest.find({
+      status: { $in: ['Request Submitted', 'Request Accepted'] }
+    }).sort({ created_at: -1 }).lean();
 
+    raw.sort((a, b) => {
+      const pa = PRIORITY_RANK[a.priority] || 3;
+      const pb = PRIORITY_RANK[b.priority] || 3;
+      if (pa !== pb) return pa - pb;
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+
+    const requests = await enrichRequests(raw);
     res.json({ success: true, data: requests });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -55,33 +63,15 @@ router.get('/assigned', authenticateToken, requireRole('collector'), async (req,
       return res.status(400).json({ success: false, message: 'Collector profile not linked.' });
     }
 
-    const requests = await all(`
-      SELECT 
-        cr.*,
-        c.name as category_name, c.color as category_color, c.hex_color as category_hex, c.badge_class,
-        d.name as department_name, d.code as department_code, d.floor, d.building,
-        u_staff.full_name as staff_name, u_staff.phone as staff_phone,
-        fac.name as facility_name, fac.address as facility_address, fac.latitude as facility_lat, fac.longitude as facility_lng
-      FROM collection_requests cr
-      LEFT JOIN waste_categories c ON cr.category_id = c.id
-      LEFT JOIN departments d ON cr.department_id = d.id
-      LEFT JOIN staff stf ON cr.staff_id = stf.id
-      LEFT JOIN users u_staff ON stf.user_id = u_staff.id
-      LEFT JOIN disposal_facilities fac ON cr.disposal_facility_id = fac.id
-      WHERE cr.collector_id = ?
-      ORDER BY 
-        CASE cr.status 
-          WHEN 'Collection in Progress' THEN 1
-          WHEN 'Collector Assigned' THEN 2
-          WHEN 'Waste Collected' THEN 3
-          WHEN 'Transported' THEN 4
-          WHEN 'Handed Over to Authorized Treatment Facility' THEN 5
-          WHEN 'Completed' THEN 6
-          ELSE 7
-        END,
-        cr.updated_at DESC
-    `, [collectorId]);
+    const raw = await CollectionRequest.find({ collector_id: collectorId }).lean();
+    raw.sort((a, b) => {
+      const sa = ASSIGNED_STATUS_RANK[a.status] || 7;
+      const sb = ASSIGNED_STATUS_RANK[b.status] || 7;
+      if (sa !== sb) return sa - sb;
+      return new Date(b.updated_at) - new Date(a.updated_at);
+    });
 
+    const requests = await enrichRequests(raw);
     res.json({ success: true, data: requests });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -91,11 +81,11 @@ router.get('/assigned', authenticateToken, requireRole('collector'), async (req,
 // POST /api/requests/:id/accept - Collector accepts request
 router.post('/:id/accept', authenticateToken, requireRole('collector'), async (req, res) => {
   try {
-    const requestId = req.params.id;
+    const requestId = parseInt(req.params.id);
     const collectorId = req.collector.collector_id;
     const { collector_lat, collector_lng } = req.body;
 
-    const request = await get('SELECT * FROM collection_requests WHERE id = ?', [requestId]);
+    const request = await CollectionRequest.findOne({ id: requestId });
     if (!request) {
       return res.status(404).json({ success: false, message: 'Request not found.' });
     }
@@ -107,28 +97,34 @@ router.post('/:id/accept', authenticateToken, requireRole('collector'), async (r
     const lat = parseFloat(collector_lat) || req.collector.current_lat || 12.9720;
     const lng = parseFloat(collector_lng) || req.collector.current_lng || 77.5950;
 
-    // Update status to 'Collector Assigned'
-    await run(`
-      UPDATE collection_requests
-      SET status = 'Collector Assigned',
-          collector_id = ?,
-          collector_lat = ?,
-          collector_lng = ?,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `, [collectorId, lat, lng, requestId]);
+    request.status = 'Collector Assigned';
+    request.collector_id = collectorId;
+    request.collector_lat = lat;
+    request.collector_lng = lng;
+    request.updated_at = new Date();
+    await request.save();
 
-    // Record in history
-    await run(`
-      INSERT INTO collection_history (request_id, status, notes, updated_by_user_id, latitude, longitude)
-      VALUES (?, 'Collector Assigned', ?, ?, ?, ?)
-    `, [requestId, `Accepted and assigned to collector: ${req.user.full_name} (${req.collector.vehicle_number})`, req.user.id, lat, lng]);
+    const histId = await getNextId('collection_history');
+    await CollectionHistory.create({
+      id: histId,
+      request_id: requestId,
+      status: 'Collector Assigned',
+      notes: `Accepted and assigned to collector: ${req.user.full_name} (${req.collector.vehicle_number})`,
+      updated_by_user_id: req.user.id,
+      latitude: lat,
+      longitude: lng
+    });
 
-    // Record GPS trail
-    await run(`
-      INSERT INTO gps_locations (request_id, collector_id, latitude, longitude, accuracy, location_type)
-      VALUES (?, ?, ?, ?, 5.0, 'collector_waypoint')
-    `, [requestId, collectorId, lat, lng]);
+    const gpsId = await getNextId('gps_locations');
+    await GpsLocation.create({
+      id: gpsId,
+      request_id: requestId,
+      collector_id: collectorId,
+      latitude: lat,
+      longitude: lng,
+      accuracy: 5.0,
+      location_type: 'collector_waypoint'
+    });
 
     res.json({
       success: true,
@@ -143,26 +139,26 @@ router.post('/:id/accept', authenticateToken, requireRole('collector'), async (r
 // POST /api/requests/:id/reject - Collector rejects request
 router.post('/:id/reject', authenticateToken, requireRole('collector'), async (req, res) => {
   try {
-    const requestId = req.params.id;
+    const requestId = parseInt(req.params.id);
     const { reason } = req.body;
 
-    const request = await get('SELECT * FROM collection_requests WHERE id = ?', [requestId]);
+    const request = await CollectionRequest.findOne({ id: requestId });
     if (!request) {
       return res.status(404).json({ success: false, message: 'Request not found.' });
     }
 
-    // Keep request available for other collectors
-    await run(`
-      UPDATE collection_requests
-      SET rejection_reason = ?,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `, [reason || 'Declined by collector', requestId]);
+    request.rejection_reason = reason || 'Declined by collector';
+    request.updated_at = new Date();
+    await request.save();
 
-    await run(`
-      INSERT INTO collection_history (request_id, status, notes, updated_by_user_id)
-      VALUES (?, ?, ?, ?)
-    `, [requestId, request.status, `Collection declined by collector: ${req.user.full_name}. Reason: ${reason || 'Capacity full'}`, req.user.id]);
+    const histId = await getNextId('collection_history');
+    await CollectionHistory.create({
+      id: histId,
+      request_id: requestId,
+      status: request.status,
+      notes: `Collection declined by collector: ${req.user.full_name}. Reason: ${reason || 'Capacity full'}`,
+      updated_by_user_id: req.user.id
+    });
 
     res.json({ success: true, message: 'Request declined. It remains open for other active collectors.' });
   } catch (error) {
@@ -173,7 +169,7 @@ router.post('/:id/reject', authenticateToken, requireRole('collector'), async (r
 // POST /api/requests/:id/status - Advance status in 8-stage lifecycle
 router.post('/:id/status', authenticateToken, requireRole(['collector', 'admin']), upload.single('proof_photo'), async (req, res) => {
   try {
-    const requestId = req.params.id;
+    const requestId = parseInt(req.params.id);
     const {
       status,
       actual_weight_kg,
@@ -190,72 +186,66 @@ router.post('/:id/status', authenticateToken, requireRole(['collector', 'admin']
       });
     }
 
-    const request = await get('SELECT * FROM collection_requests WHERE id = ?', [requestId]);
+    const request = await CollectionRequest.findOne({ id: requestId });
     if (!request) {
       return res.status(404).json({ success: false, message: 'Collection request not found.' });
     }
 
-    const proofPhotoUrl = req.file ? `/uploads/proofs/${req.file.filename}` : request.proof_photo;
+    let proofPhotoUrl = request.proof_photo;
+    if (req.file) {
+      proofPhotoUrl = await saveUploadedFile(req.file, 'proofs');
+    }
+
     const lat = parseFloat(collector_lat) || request.collector_lat || 12.9720;
     const lng = parseFloat(collector_lng) || request.collector_lng || 77.5950;
     const actualWeight = actual_weight_kg ? parseFloat(actual_weight_kg) : request.actual_weight_kg;
     const facilityId = disposal_facility_id ? parseInt(disposal_facility_id) : request.disposal_facility_id;
     const notes = handover_notes || request.handover_notes || '';
 
-    // Update request
-    await run(`
-      UPDATE collection_requests
-      SET status = ?,
-          actual_weight_kg = COALESCE(?, actual_weight_kg),
-          proof_photo = COALESCE(?, proof_photo),
-          disposal_facility_id = COALESCE(?, disposal_facility_id),
-          handover_notes = COALESCE(?, handover_notes),
-          collector_lat = ?,
-          collector_lng = ?,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `, [status, actualWeight, proofPhotoUrl, facilityId, notes, lat, lng, requestId]);
+    request.status = status;
+    if (actualWeight !== null && actualWeight !== undefined) request.actual_weight_kg = actualWeight;
+    if (proofPhotoUrl) request.proof_photo = proofPhotoUrl;
+    if (facilityId) request.disposal_facility_id = facilityId;
+    if (notes) request.handover_notes = notes;
+    request.collector_lat = lat;
+    request.collector_lng = lng;
+    request.updated_at = new Date();
+    await request.save();
 
-    // Also update waste_records actual weight if provided
     if (actualWeight) {
-      await run(`
-        UPDATE waste_records
-        SET quantity_kg = ?
-        WHERE request_id = ?
-      `, [actualWeight, requestId]);
+      await WasteRecord.updateMany({ request_id: requestId }, { quantity_kg: actualWeight });
     }
 
-    // Add to collection_history
-    await run(`
-      INSERT INTO collection_history (request_id, status, notes, updated_by_user_id, latitude, longitude)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [
-      requestId,
+    const histId = await getNextId('collection_history');
+    await CollectionHistory.create({
+      id: histId,
+      request_id: requestId,
       status,
-      `Status updated to "${status}". Notes: ${notes}${actualWeight ? ` (Verified Weight: ${actualWeight} kg)` : ''}`,
-      req.user.id,
-      lat,
-      lng
-    ]);
+      notes: `Status updated to "${status}". Notes: ${notes}${actualWeight ? ` (Verified Weight: ${actualWeight} kg)` : ''}`,
+      updated_by_user_id: req.user.id,
+      latitude: lat,
+      longitude: lng
+    });
 
-    // Record GPS coordinate
-    await run(`
-      INSERT INTO gps_locations (request_id, collector_id, latitude, longitude, accuracy, location_type)
-      VALUES (?, ?, ?, ?, 4.5, ?)
-    `, [
-      requestId,
-      request.collector_id || (req.collector ? req.collector.collector_id : null),
-      lat,
-      lng,
-      status === 'Handed Over to Authorized Treatment Facility' || status === 'Completed' ? 'disposal_point' : 'collector_waypoint'
-    ]);
+    const gpsId = await getNextId('gps_locations');
+    await GpsLocation.create({
+      id: gpsId,
+      request_id: requestId,
+      collector_id: request.collector_id || (req.collector ? req.collector.collector_id : null),
+      latitude: lat,
+      longitude: lng,
+      accuracy: 4.5,
+      location_type: (status === 'Handed Over to Authorized Treatment Facility' || status === 'Completed')
+        ? 'disposal_point'
+        : 'collector_waypoint'
+    });
 
     res.json({
       success: true,
       message: `Status successfully updated to "${status}"`,
       data: {
         id: requestId,
-        status: status,
+        status,
         actual_weight_kg: actualWeight,
         proof_photo: proofPhotoUrl
       }
@@ -269,49 +259,34 @@ router.post('/:id/status', authenticateToken, requireRole(['collector', 'admin']
 // GET /api/requests/:id - Complete details of a single request
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
-    const request = await get(`
-      SELECT 
-        cr.*,
-        c.name as category_name, c.color as category_color, c.hex_color as category_hex, c.badge_class, c.example_items, c.segregation_rules,
-        d.name as department_name, d.code as department_code, d.floor, d.building, d.head_name as dept_head, d.contact_number as dept_contact,
-        u_staff.full_name as staff_name, u_staff.phone as staff_phone, stf.staff_code, stf.designation as staff_designation,
-        u_col.full_name as collector_name, u_col.phone as collector_phone, col.collector_code, col.vehicle_number, col.vehicle_type,
-        fac.name as facility_name, fac.address as facility_address, fac.facility_type, fac.contact_person as facility_contact, fac.contact_phone as facility_phone,
-        fac.latitude as facility_lat, fac.longitude as facility_lng, fac.license_number as facility_license
-      FROM collection_requests cr
-      LEFT JOIN waste_categories c ON cr.category_id = c.id
-      LEFT JOIN departments d ON cr.department_id = d.id
-      LEFT JOIN staff stf ON cr.staff_id = stf.id
-      LEFT JOIN users u_staff ON stf.user_id = u_staff.id
-      LEFT JOIN collectors col ON cr.collector_id = col.id
-      LEFT JOIN users u_col ON col.user_id = u_col.id
-      LEFT JOIN disposal_facilities fac ON cr.disposal_facility_id = fac.id
-      WHERE cr.id = ?
-    `, [req.params.id]);
-
-    if (!request) {
+    const requestId = parseInt(req.params.id);
+    const rawReq = await CollectionRequest.findOne({ id: requestId }).lean();
+    if (!rawReq) {
       return res.status(404).json({ success: false, message: 'Request not found.' });
     }
 
-    const history = await all(`
-      SELECT ch.*, u.full_name as updater_name, u.role as updater_role
-      FROM collection_history ch
-      LEFT JOIN users u ON ch.updated_by_user_id = u.id
-      WHERE ch.request_id = ?
-      ORDER BY ch.created_at ASC
-    `, [req.params.id]);
+    const [request] = await enrichRequests([rawReq]);
+    const history = await CollectionHistory.find({ request_id: requestId }).sort({ created_at: 1 }).lean();
 
-    const gpsTrail = await all(`
-      SELECT * FROM gps_locations
-      WHERE request_id = ?
-      ORDER BY recorded_at ASC
-    `, [req.params.id]);
+    const userIds = history.map(h => h.updated_by_user_id).filter(Boolean);
+    const users = await User.find({ id: { $in: userIds } }).select('id full_name role').lean();
+    const userMap = new Map(users.map(u => [u.id, u]));
+    const enrichedHistory = history.map(h => {
+      const u = userMap.get(h.updated_by_user_id) || {};
+      return {
+        ...h,
+        updater_name: u.full_name || null,
+        updater_role: u.role || null
+      };
+    });
+
+    const gpsTrail = await GpsLocation.find({ request_id: requestId }).sort({ recorded_at: 1 }).lean();
 
     res.json({
       success: true,
       data: {
         request,
-        history,
+        history: enrichedHistory,
         gpsTrail,
         stages: VALID_WORKFLOW_STAGES
       }
@@ -322,4 +297,3 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 module.exports = router;
-

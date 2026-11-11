@@ -1,260 +1,62 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const fs = require('fs');
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const {
+  User,
+  Department,
+  Staff,
+  Collector,
+  WasteCategory,
+  DisposalFacility,
+  CollectionRequest,
+  WasteRecord,
+  GpsLocation,
+  CollectionHistory,
+  UploadedFile,
+  getNextId
+} = require('./models');
 
-// Ensure data directory exists
-const dataDir = path.join(__dirname, '..', 'data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
+/** Connects to MongoDB and initializes + seeds baseline hospital biomedical waste data. */
+async function initDatabase(uriOverride) {
+  const mongoUri = uriOverride || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/hospital_waste';
 
-// Ensure uploads directories exist
-const uploadDirs = [
-  path.join(__dirname, '..', 'uploads'),
-  path.join(__dirname, '..', 'uploads', 'waste'),
-  path.join(__dirname, '..', 'uploads', 'proofs')
-];
-uploadDirs.forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  if (!process.env.MONGODB_URI && !uriOverride) {
+    console.warn('Warning: MONGODB_URI env variable not set. Attempting local MongoDB at mongodb://127.0.0.1:27017/hospital_waste');
   }
-});
 
-const dbPath = path.join(dataDir, 'hospital_waste.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('Error opening database:', err.message);
-  } else {
-    console.log('Connected to SQLite database at:', dbPath);
+  if (mongoose.connection.readyState !== 1) {
+    await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 10000
+    });
+    console.log('Connected to MongoDB database successfully.');
   }
-});
-
-// Helper for promise-based queries
-function run(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function (err) {
-      if (err) reject(err);
-      else resolve({ id: this.lastID, changes: this.changes });
-    });
-  });
-}
-
-function get(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
-}
-
-function all(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
-}
-
-// Initialize tables and seed data
-async function initDatabase() {
-  await run('PRAGMA foreign_keys = ON;');
-
-  // 1. Users
-  await run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE NOT NULL,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      role TEXT NOT NULL CHECK(role IN ('staff', 'collector', 'admin')),
-      full_name TEXT NOT NULL,
-      phone TEXT,
-      status TEXT DEFAULT 'active',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  // 2. Departments
-  await run(`
-    CREATE TABLE IF NOT EXISTS departments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      code TEXT UNIQUE NOT NULL,
-      floor TEXT,
-      building TEXT,
-      head_name TEXT,
-      contact_number TEXT,
-      default_lat REAL,
-      default_lng REAL
-    )
-  `);
-
-  // 3. Staff
-  await run(`
-    CREATE TABLE IF NOT EXISTS staff (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      staff_code TEXT UNIQUE NOT NULL,
-      department_id INTEGER REFERENCES departments(id),
-      designation TEXT,
-      badge_number TEXT
-    )
-  `);
-
-  // 4. Collectors
-  await run(`
-    CREATE TABLE IF NOT EXISTS collectors (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      collector_code TEXT UNIQUE NOT NULL,
-      vehicle_number TEXT NOT NULL,
-      vehicle_type TEXT DEFAULT 'Bio-Waste Van (GPS-Enabled)',
-      assigned_zone TEXT,
-      current_lat REAL,
-      current_lng REAL,
-      is_active INTEGER DEFAULT 1
-    )
-  `);
-
-  // 5. Waste Categories
-  await run(`
-    CREATE TABLE IF NOT EXISTS waste_categories (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      code TEXT UNIQUE NOT NULL,
-      color TEXT NOT NULL,
-      hex_color TEXT NOT NULL,
-      badge_class TEXT,
-      description TEXT NOT NULL,
-      example_items TEXT NOT NULL,
-      segregation_rules TEXT NOT NULL,
-      handling_instructions TEXT NOT NULL,
-      icon TEXT
-    )
-  `);
-
-  // 6. Disposal Facilities
-  await run(`
-    CREATE TABLE IF NOT EXISTS disposal_facilities (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      code TEXT UNIQUE NOT NULL,
-      facility_type TEXT NOT NULL,
-      address TEXT NOT NULL,
-      contact_person TEXT,
-      contact_phone TEXT,
-      latitude REAL NOT NULL,
-      longitude REAL NOT NULL,
-      license_number TEXT,
-      capacity_tons_day REAL,
-      status TEXT DEFAULT 'Active'
-    )
-  `);
-
-  // 7. Collection Requests (with 8-stage workflow)
-  await run(`
-    CREATE TABLE IF NOT EXISTS collection_requests (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      request_number TEXT UNIQUE NOT NULL,
-      staff_id INTEGER REFERENCES staff(id),
-      department_id INTEGER REFERENCES departments(id),
-      room_number TEXT NOT NULL,
-      category_id INTEGER REFERENCES waste_categories(id),
-      estimated_weight_kg REAL NOT NULL,
-      actual_weight_kg REAL,
-      waste_photo TEXT,
-      proof_photo TEXT,
-      priority TEXT DEFAULT 'Normal' CHECK(priority IN ('Normal', 'High', 'Urgent')),
-      status TEXT NOT NULL DEFAULT 'Request Submitted',
-      collector_id INTEGER REFERENCES collectors(id),
-      disposal_facility_id INTEGER REFERENCES disposal_facilities(id),
-      collection_lat REAL,
-      collection_lng REAL,
-      collection_address TEXT,
-      collector_lat REAL,
-      collector_lng REAL,
-      handover_notes TEXT,
-      rejection_reason TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  // 8. Waste Records
-  await run(`
-    CREATE TABLE IF NOT EXISTS waste_records (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      request_id INTEGER REFERENCES collection_requests(id) ON DELETE CASCADE,
-      category_id INTEGER REFERENCES waste_categories(id),
-      quantity_kg REAL NOT NULL,
-      unit TEXT DEFAULT 'kg',
-      number_of_bags INTEGER DEFAULT 1,
-      photo_url TEXT,
-      hazard_level TEXT DEFAULT 'High',
-      notes TEXT,
-      recorded_by_staff_id INTEGER REFERENCES staff(id),
-      recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  // 9. GPS Locations
-  await run(`
-    CREATE TABLE IF NOT EXISTS gps_locations (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      request_id INTEGER REFERENCES collection_requests(id),
-      collector_id INTEGER REFERENCES collectors(id),
-      latitude REAL NOT NULL,
-      longitude REAL NOT NULL,
-      accuracy REAL,
-      speed REAL,
-      location_type TEXT DEFAULT 'collector_waypoint',
-      recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  // 10. Collection History
-  await run(`
-    CREATE TABLE IF NOT EXISTS collection_history (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      request_id INTEGER NOT NULL REFERENCES collection_requests(id) ON DELETE CASCADE,
-      status TEXT NOT NULL,
-      notes TEXT,
-      updated_by_user_id INTEGER REFERENCES users(id),
-      latitude REAL,
-      longitude REAL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  // 11. Reports
-  await run(`
-    CREATE TABLE IF NOT EXISTS reports (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      report_code TEXT UNIQUE NOT NULL,
-      report_title TEXT NOT NULL,
-      report_type TEXT NOT NULL,
-      filter_criteria TEXT,
-      date_from DATE,
-      date_to DATE,
-      total_weight_kg REAL,
-      total_requests INTEGER,
-      generated_by_user_id INTEGER REFERENCES users(id),
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
 
   await seedInitialData();
 }
 
+/** Saves an uploaded image buffer into MongoDB and returns its public API path. */
+async function saveUploadedFile(file, folder = 'waste') {
+  if (!file || !file.buffer) return null;
+  const id = await getNextId('uploaded_files');
+  const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+  const filename = `${file.fieldname || 'file'}-${uniqueSuffix}-${file.originalname || 'upload.jpg'}`;
+
+  await UploadedFile.create({
+    id,
+    filename,
+    mimetype: file.mimetype || 'image/jpeg',
+    data: file.buffer,
+    size: file.size || file.buffer.length,
+    folder
+  });
+
+  return `/api/uploads/${id}`;
+}
+
 async function seedInitialData() {
-  // Check if categories already seeded
-  const catCount = await get('SELECT COUNT(*) as count FROM waste_categories');
-  if (catCount.count === 0) {
+  // 1. Seed Waste Categories
+  const catCount = await WasteCategory.countDocuments();
+  if (catCount === 0) {
     console.log('Seeding Waste Categories...');
-    // 4 Biomedical Waste Categories + General Waste note
     const categories = [
       {
         name: 'Infectious & Pathological Waste',
@@ -307,16 +109,14 @@ async function seedInitialData() {
     ];
 
     for (const cat of categories) {
-      await run(`
-        INSERT INTO waste_categories (name, code, color, hex_color, badge_class, description, example_items, segregation_rules, handling_instructions, icon)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [cat.name, cat.code, cat.color, cat.hex_color, cat.badge_class, cat.description, cat.example_items, cat.segregation_rules, cat.handling_instructions, cat.icon]);
+      const id = await getNextId('waste_categories');
+      await WasteCategory.create({ id, ...cat });
     }
   }
 
-  // Check Departments
-  const deptCount = await get('SELECT COUNT(*) as count FROM departments');
-  if (deptCount.count === 0) {
+  // 2. Seed Hospital Departments
+  const deptCount = await Department.countDocuments();
+  if (deptCount === 0) {
     console.log('Seeding Hospital Departments...');
     const depts = [
       { name: 'Emergency & Trauma Care', code: 'EMR-01', floor: 'Ground Floor', building: 'Main Block A', head_name: 'Dr. Ramesh Rao', contact_number: '+91 98450 11001', default_lat: 12.9716, default_lng: 77.5946 },
@@ -330,16 +130,14 @@ async function seedInitialData() {
     ];
 
     for (const d of depts) {
-      await run(`
-        INSERT INTO departments (name, code, floor, building, head_name, contact_number, default_lat, default_lng)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `, [d.name, d.code, d.floor, d.building, d.head_name, d.contact_number, d.default_lat, d.default_lng]);
+      const id = await getNextId('departments');
+      await Department.create({ id, ...d });
     }
   }
 
-  // Check Disposal Facilities
-  const facilityCount = await get('SELECT COUNT(*) as count FROM disposal_facilities');
-  if (facilityCount.count === 0) {
+  // 3. Seed Disposal Facilities
+  const facilityCount = await DisposalFacility.countDocuments();
+  if (facilityCount === 0) {
     console.log('Seeding Authorized Bio-Medical Waste Treatment Facilities (CBWTF)...');
     const facilities = [
       {
@@ -384,84 +182,133 @@ async function seedInitialData() {
     ];
 
     for (const f of facilities) {
-      await run(`
-        INSERT INTO disposal_facilities (name, code, facility_type, address, contact_person, contact_phone, latitude, longitude, license_number, capacity_tons_day, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [f.name, f.code, f.facility_type, f.address, f.contact_person, f.contact_phone, f.latitude, f.longitude, f.license_number, f.capacity_tons_day, f.status]);
+      const id = await getNextId('disposal_facilities');
+      await DisposalFacility.create({ id, ...f });
     }
   }
 
-  // Check Users (Staff, Collector, Admin)
-  const userCount = await get('SELECT COUNT(*) as count FROM users');
-  if (userCount.count === 0) {
+  // 4. Seed Demo Users & Sample Collection Requests
+  const userCount = await User.countDocuments();
+  if (userCount === 0) {
     console.log('Seeding Demo Accounts (Staff, Collector, Admin)...');
-    const defaultPassword = 'Password@123';
-    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+    const hashedPassword = await bcrypt.hash('Password@123', 10);
 
-    // 1. Staff User 1
-    const staffUserRes = await run(`
-      INSERT INTO users (username, email, password, role, full_name, phone)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, ['staff_ananya', 'staff@hospital.com', hashedPassword, 'staff', 'Dr. Ananya Sharma', '+91 98765 43210']);
-    
-    await run(`
-      INSERT INTO staff (user_id, staff_code, department_id, designation, badge_number)
-      VALUES (?, ?, ?, ?, ?)
-    `, [staffUserRes.id, 'STF-EMR-01', 1, 'Senior Nursing Officer', 'NUR-4091']);
+    // Staff User 1
+    const staffUserId1 = await getNextId('users');
+    await User.create({
+      id: staffUserId1,
+      username: 'staff_ananya',
+      email: 'staff@hospital.com',
+      password: hashedPassword,
+      role: 'staff',
+      full_name: 'Dr. Ananya Sharma',
+      phone: '+91 98765 43210'
+    });
+    const staffId1 = await getNextId('staff');
+    await Staff.create({
+      id: staffId1,
+      user_id: staffUserId1,
+      staff_code: 'STF-EMR-01',
+      department_id: 1,
+      designation: 'Senior Nursing Officer',
+      badge_number: 'NUR-4091'
+    });
 
-    // Staff User 2 (OT Specialist)
-    const staffUserRes2 = await run(`
-      INSERT INTO users (username, email, password, role, full_name, phone)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, ['nurse_kavita', 'nurse@hospital.com', hashedPassword, 'staff', 'Kavita Sundaram', '+91 98765 43211']);
-    
-    await run(`
-      INSERT INTO staff (user_id, staff_code, department_id, designation, badge_number)
-      VALUES (?, ?, ?, ?, ?)
-    `, [staffUserRes2.id, 'STF-OT-02', 2, 'Head OT Technician', 'TECH-1102']);
+    // Staff User 2
+    const staffUserId2 = await getNextId('users');
+    await User.create({
+      id: staffUserId2,
+      username: 'nurse_kavita',
+      email: 'nurse@hospital.com',
+      password: hashedPassword,
+      role: 'staff',
+      full_name: 'Kavita Sundaram',
+      phone: '+91 98765 43211'
+    });
+    const staffId2 = await getNextId('staff');
+    await Staff.create({
+      id: staffId2,
+      user_id: staffUserId2,
+      staff_code: 'STF-OT-02',
+      department_id: 2,
+      designation: 'Head OT Technician',
+      badge_number: 'TECH-1102'
+    });
 
-    // 2. Collector User 1
-    const collectorUserRes = await run(`
-      INSERT INTO users (username, email, password, role, full_name, phone)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, ['collector_rajesh', 'collector@hospital.com', hashedPassword, 'collector', 'Rajesh Kumar', '+91 98765 43220']);
-
-    await run(`
-      INSERT INTO collectors (user_id, collector_code, vehicle_number, vehicle_type, assigned_zone, current_lat, current_lng, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `, [collectorUserRes.id, 'COL-VAN-01', 'KA-05-EB-4421', 'GPS Bio-Waste Specialized Truck', 'North & Central Campus', 12.9722, 77.5950, 1]);
+    // Collector User 1
+    const colUserId1 = await getNextId('users');
+    await User.create({
+      id: colUserId1,
+      username: 'collector_rajesh',
+      email: 'collector@hospital.com',
+      password: hashedPassword,
+      role: 'collector',
+      full_name: 'Rajesh Kumar',
+      phone: '+91 98765 43220'
+    });
+    const colId1 = await getNextId('collectors');
+    await Collector.create({
+      id: colId1,
+      user_id: colUserId1,
+      collector_code: 'COL-VAN-01',
+      vehicle_number: 'KA-05-EB-4421',
+      vehicle_type: 'GPS Bio-Waste Specialized Truck',
+      assigned_zone: 'North & Central Campus',
+      current_lat: 12.9722,
+      current_lng: 77.5950,
+      is_active: 1
+    });
 
     // Collector User 2
-    const collectorUserRes2 = await run(`
-      INSERT INTO users (username, email, password, role, full_name, phone)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, ['collector_suresh', 'collector2@hospital.com', hashedPassword, 'collector', 'Suresh Goud', '+91 98765 43221']);
+    const colUserId2 = await getNextId('users');
+    await User.create({
+      id: colUserId2,
+      username: 'collector_suresh',
+      email: 'collector2@hospital.com',
+      password: hashedPassword,
+      role: 'collector',
+      full_name: 'Suresh Goud',
+      phone: '+91 98765 43221'
+    });
+    const colId2 = await getNextId('collectors');
+    await Collector.create({
+      id: colId2,
+      user_id: colUserId2,
+      collector_code: 'COL-VAN-02',
+      vehicle_number: 'KA-04-MK-9912',
+      vehicle_type: 'GPS Rapid Bio-Hazard Van',
+      assigned_zone: 'South Campus & Labs',
+      current_lat: 12.9710,
+      current_lng: 77.5940,
+      is_active: 1
+    });
 
-    await run(`
-      INSERT INTO collectors (user_id, collector_code, vehicle_number, vehicle_type, assigned_zone, current_lat, current_lng, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `, [collectorUserRes2.id, 'COL-VAN-02', 'KA-04-MK-9912', 'GPS Rapid Bio-Hazard Van', 'South Campus & Labs', 12.9710, 77.5940, 1]);
+    // Admin User
+    const adminUserId = await getNextId('users');
+    await User.create({
+      id: adminUserId,
+      username: 'admin_vikram',
+      email: 'admin@hospital.com',
+      password: hashedPassword,
+      role: 'admin',
+      full_name: 'Dr. Vikram Malhotra (Medical Superintendent)',
+      phone: '+91 98765 43230'
+    });
 
-    // 3. Admin User
-    await run(`
-      INSERT INTO users (username, email, password, role, full_name, phone)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, ['admin_vikram', 'admin@hospital.com', hashedPassword, 'admin', 'Dr. Vikram Malhotra (Medical Superintendent)', '+91 98765 43230']);
-
-    // Seed Sample Collection Requests across the 8 stages
+    // Sample Collection Requests across the 8 stages
     console.log('Seeding Sample Collection Requests...');
     const sampleRequests = [
       {
         reqNum: 'BMW-2026-001',
-        staffId: 1,
-        deptId: 1, // Emergency
+        staffId: staffId1,
+        deptId: 1,
         room: 'Trauma Resuscitation Bay 2',
-        catId: 1, // Yellow (Infectious)
+        catId: 1,
         estKg: 4.8,
         actKg: 5.1,
         priority: 'Urgent',
         status: 'Completed',
-        collectorId: 1,
+        collectorId: colId1,
         facId: 1,
         lat: 12.97165,
         lng: 77.59462,
@@ -470,15 +317,15 @@ async function seedInitialData() {
       },
       {
         reqNum: 'BMW-2026-002',
-        staffId: 2,
-        deptId: 2, // OT
+        staffId: staffId2,
+        deptId: 2,
         room: 'Cardiac Operation Theatre 3',
-        catId: 3, // White (Sharps)
+        catId: 3,
         estKg: 2.2,
         actKg: 2.4,
         priority: 'High',
         status: 'Handed Over to Authorized Treatment Facility',
-        collectorId: 1,
+        collectorId: colId1,
         facId: 1,
         lat: 12.97182,
         lng: 77.59481,
@@ -487,15 +334,15 @@ async function seedInitialData() {
       },
       {
         reqNum: 'BMW-2026-003',
-        staffId: 1,
-        deptId: 3, // ICU
+        staffId: staffId1,
+        deptId: 3,
         room: 'Bed 14 - Post Operative ICU',
-        catId: 2, // Red (Plastic)
+        catId: 2,
         estKg: 6.5,
         actKg: 6.3,
         priority: 'Normal',
         status: 'Transported',
-        collectorId: 1,
+        collectorId: colId1,
         facId: 3,
         lat: 12.97155,
         lng: 77.59445,
@@ -504,15 +351,15 @@ async function seedInitialData() {
       },
       {
         reqNum: 'BMW-2026-004',
-        staffId: 2,
-        deptId: 4, // Pathology
+        staffId: staffId2,
+        deptId: 4,
         room: 'Histopathology Section Lab 4',
-        catId: 4, // Blue (Glass)
+        catId: 4,
         estKg: 3.4,
         actKg: 3.5,
         priority: 'Normal',
         status: 'Waste Collected',
-        collectorId: 2,
+        collectorId: colId2,
         facId: 3,
         lat: 12.97192,
         lng: 77.59495,
@@ -521,15 +368,15 @@ async function seedInitialData() {
       },
       {
         reqNum: 'BMW-2026-005',
-        staffId: 1,
-        deptId: 1, // Emergency
+        staffId: staffId1,
+        deptId: 1,
         room: 'Minor Procedure Room 1',
-        catId: 1, // Yellow
+        catId: 1,
         estKg: 3.1,
         actKg: null,
         priority: 'Urgent',
         status: 'Collection in Progress',
-        collectorId: 1,
+        collectorId: colId1,
         facId: 1,
         lat: 12.97160,
         lng: 77.59465,
@@ -538,32 +385,32 @@ async function seedInitialData() {
       },
       {
         reqNum: 'BMW-2026-006',
-        staffId: 2,
-        deptId: 5, // Oncology
+        staffId: staffId2,
+        deptId: 5,
         room: 'Chemotherapy Daycare Bay 5',
-        catId: 1, // Yellow (Cytotoxic)
+        catId: 1,
         estKg: 5.0,
         actKg: null,
         priority: 'High',
         status: 'Collector Assigned',
-        collectorId: 2,
+        collectorId: colId2,
         facId: 2,
         lat: 12.97135,
         lng: 77.59432,
         address: 'Super Specialty Wing, 4th Floor, Chemo Bay 5',
-        notes: 'Assigned to collector Rajesh Kumar (Van KA-05-EB-4421).'
+        notes: 'Assigned to collector Suresh Goud (Van KA-04-MK-9912).'
       },
       {
         reqNum: 'BMW-2026-007',
-        staffId: 1,
-        deptId: 2, // OT
+        staffId: staffId1,
+        deptId: 2,
         room: 'Orthopedic OT 1',
-        catId: 4, // Blue (Implants)
+        catId: 4,
         estKg: 4.2,
         actKg: null,
         priority: 'Normal',
         status: 'Request Accepted',
-        collectorId: 1,
+        collectorId: colId1,
         facId: 1,
         lat: 12.97185,
         lng: 77.59485,
@@ -572,10 +419,10 @@ async function seedInitialData() {
       },
       {
         reqNum: 'BMW-2026-008',
-        staffId: 1,
-        deptId: 3, // ICU
+        staffId: staffId1,
+        deptId: 3,
         room: 'Isolation Ward Room 204',
-        catId: 2, // Red
+        catId: 2,
         estKg: 7.0,
         actKg: null,
         priority: 'Urgent',
@@ -590,49 +437,69 @@ async function seedInitialData() {
     ];
 
     for (const r of sampleRequests) {
-      const res = await run(`
-        INSERT INTO collection_requests (
-          request_number, staff_id, department_id, room_number, category_id,
-          estimated_weight_kg, actual_weight_kg, priority, status, collector_id,
-          disposal_facility_id, collection_lat, collection_lng, collection_address,
-          handover_notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        r.reqNum, r.staffId, r.deptId, r.room, r.catId,
-        r.estKg, r.actKg, r.priority, r.status, r.collectorId,
-        r.facId, r.lat, r.lng, r.address, r.notes
-      ]);
+      const reqId = await getNextId('collection_requests');
+      await CollectionRequest.create({
+        id: reqId,
+        request_number: r.reqNum,
+        staff_id: r.staffId,
+        department_id: r.deptId,
+        room_number: r.room,
+        category_id: r.catId,
+        estimated_weight_kg: r.estKg,
+        actual_weight_kg: r.actKg,
+        priority: r.priority,
+        status: r.status,
+        collector_id: r.collectorId,
+        disposal_facility_id: r.facId,
+        collection_lat: r.lat,
+        collection_lng: r.lng,
+        collection_address: r.address,
+        handover_notes: r.notes
+      });
 
-      // Waste record
-      await run(`
-        INSERT INTO waste_records (request_id, category_id, quantity_kg, unit, number_of_bags, hazard_level, notes, recorded_by_staff_id)
-        VALUES (?, ?, ?, 'kg', 2, 'High', ?, ?)
-      `, [res.id, r.catId, r.actKg || r.estKg, r.notes, r.staffId]);
+      const recId = await getNextId('waste_records');
+      await WasteRecord.create({
+        id: recId,
+        request_id: reqId,
+        category_id: r.catId,
+        quantity_kg: r.actKg || r.estKg,
+        unit: 'kg',
+        number_of_bags: 2,
+        hazard_level: 'High',
+        notes: r.notes,
+        recorded_by_staff_id: r.staffId
+      });
 
-      // History
-      await run(`
-        INSERT INTO collection_history (request_id, status, notes, updated_by_user_id, latitude, longitude)
-        VALUES (?, ?, ?, 1, ?, ?)
-      `, [res.id, r.status, `Workflow milestone: ${r.status}`, r.lat, r.lng]);
+      const histId = await getNextId('collection_history');
+      await CollectionHistory.create({
+        id: histId,
+        request_id: reqId,
+        status: r.status,
+        notes: `Workflow milestone: ${r.status}`,
+        updated_by_user_id: staffUserId1,
+        latitude: r.lat,
+        longitude: r.lng
+      });
 
-      // GPS trail
       if (r.collectorId) {
-        await run(`
-          INSERT INTO gps_locations (request_id, collector_id, latitude, longitude, accuracy, location_type)
-          VALUES (?, ?, ?, ?, 5.0, 'collector_waypoint')
-        `, [res.id, r.collectorId, r.lat + 0.001, r.lng + 0.001]);
+        const gpsId = await getNextId('gps_locations');
+        await GpsLocation.create({
+          id: gpsId,
+          request_id: reqId,
+          collector_id: r.collectorId,
+          latitude: r.lat + 0.001,
+          longitude: r.lng + 0.001,
+          accuracy: 5.0,
+          location_type: 'collector_waypoint'
+        });
       }
     }
   }
 
-  console.log('Database initialization & seeding completed successfully.');
+  console.log('MongoDB database initialization & seeding completed successfully.');
 }
 
 module.exports = {
-  db,
-  run,
-  get,
-  all,
-  initDatabase
+  initDatabase,
+  saveUploadedFile
 };
-

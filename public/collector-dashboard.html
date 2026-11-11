@@ -252,6 +252,7 @@
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="/js/config.js"></script>
   <script src="/js/api.js"></script>
 
   <script>
@@ -306,11 +307,11 @@
     }
 
     async function loadFacilities() {
-      const res = await apiRequest('/admin/facilities');
-      if (res.success && res.data) {
-        facilitiesList = res.data;
+      const res = await apiRequest('/gps/live-map-data');
+      if (res.success && res.data && res.data.facilities) {
+        facilitiesList = res.data.facilities;
         const select = document.getElementById('disposal-facility-select');
-        select.innerHTML = res.data.map(f => `
+        select.innerHTML = facilitiesList.map(f => `
           <option value="${f.id}">${f.name} (${f.facility_type})</option>
         `).join('');
       }
@@ -389,7 +390,7 @@
           <div class="p-5 rounded-2xl border border-slate-200 bg-white hover:border-teal-300 transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             
             <div class="flex items-start space-x-3.5">
-              <img src="${p.waste_photo || '/images/waste/yellow-waste.jpg'}" class="w-16 h-16 rounded-xl object-cover border border-slate-200 flex-shrink-0 shadow-sm mt-0.5" alt="Waste Photo" title="Staff Uploaded Waste Photo">
+              <img src="${resolveAssetUrl(p.waste_photo) || '/images/waste/yellow-waste.jpg'}" class="w-16 h-16 rounded-xl object-cover border border-slate-200 flex-shrink-0 shadow-sm mt-0.5" alt="Waste Photo" title="Staff Uploaded Waste Photo">
               
               <div class="space-y-1.5">
                 <div class="flex items-center space-x-2">
@@ -464,7 +465,7 @@
       container.innerHTML = pendingPickups.map(p => `
         <div class="p-5 rounded-2xl border border-slate-200 bg-white hover:border-teal-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div class="flex items-start space-x-3.5">
-            <img src="${p.waste_photo || '/images/waste/yellow-waste.jpg'}" class="w-14 h-14 rounded-xl object-cover border border-slate-200 flex-shrink-0 shadow-sm mt-0.5" alt="Waste Image">
+            <img src="${resolveAssetUrl(p.waste_photo) || '/images/waste/yellow-waste.jpg'}" class="w-14 h-14 rounded-xl object-cover border border-slate-200 flex-shrink-0 shadow-sm mt-0.5" alt="Waste Image">
             <div class="space-y-1">
               <div class="flex items-center space-x-2">
                 <span class="font-heading font-extrabold text-slate-900 text-sm">${p.request_number}</span>

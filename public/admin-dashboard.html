@@ -788,9 +788,48 @@
     </div>
   </div>
 
+  <!-- Admin Request Audit & 8-Stage Lifecycle Modal -->
+  <div id="admin-audit-modal"
+    class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative border border-slate-200 max-h-[90vh] overflow-y-auto">
+      <button onclick="closeAdminAuditModal()"
+        class="absolute top-5 right-5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">✕</button>
+      <div class="mb-4 pb-3 border-b border-slate-100">
+        <div class="flex items-center space-x-2">
+          <h3 id="audit-req-number" class="text-lg font-heading font-extrabold text-slate-900">BMW-2026-001</h3>
+          <span id="audit-req-status" class="text-xs"></span>
+        </div>
+        <div id="audit-req-subtitle" class="text-xs text-slate-500 mt-1">Department | Room</div>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs mb-5">
+        <div><span class="text-slate-400 block">Category:</span><strong id="audit-cat" class="text-slate-900">-</strong></div>
+        <div><span class="text-slate-400 block">Weight (Est / Act):</span><strong id="audit-weight" class="text-slate-900">-</strong></div>
+        <div><span class="text-slate-400 block">Staff:</span><strong id="audit-staff" class="text-slate-900">-</strong></div>
+        <div><span class="text-slate-400 block">Collector:</span><strong id="audit-collector" class="text-slate-900">-</strong></div>
+        <div><span class="text-slate-400 block">GPS Coordinates:</span><strong id="audit-gps" class="text-slate-900">-</strong></div>
+        <div><span class="text-slate-400 block">CBWTF Facility:</span><strong id="audit-facility" class="text-slate-900">-</strong></div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+        <div>
+          <span class="text-xs font-bold text-slate-700 block mb-1.5">Staff Waste Photo</span>
+          <div id="audit-waste-photo" class="w-full h-36 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden"></div>
+        </div>
+        <div>
+          <span class="text-xs font-bold text-slate-700 block mb-1.5">Collector Proof Photo</span>
+          <div id="audit-proof-photo" class="w-full h-36 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden"></div>
+        </div>
+      </div>
+      <div>
+        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Audit Milestone Log</h4>
+        <div id="audit-history-list" class="space-y-2 max-h-44 overflow-y-auto text-xs"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="/js/config.js"></script>
   <script src="/js/api.js"></script>
 
   <script>
@@ -1056,7 +1095,7 @@
         <tr class="hover:bg-slate-50/80">
           <td class="py-3 px-3 font-semibold text-indigo-700">${r.request_number}</td>
           <td class="py-3 px-3">
-            <img src="${r.waste_photo || '/images/waste/yellow-waste.jpg'}" class="w-10 h-10 rounded-lg object-cover border border-slate-200 cursor-pointer shadow-sm hover:scale-110 transition-transform" onclick="showImageModal('${r.waste_photo || '/images/waste/yellow-waste.jpg'}', '${r.request_number} - Waste Photograph')" title="Click to enlarge">
+            <img src="${resolveAssetUrl(r.waste_photo) || '/images/waste/yellow-waste.jpg'}" class="w-10 h-10 rounded-lg object-cover border border-slate-200 cursor-pointer shadow-sm hover:scale-110 transition-transform" onclick="showImageModal('${resolveAssetUrl(r.waste_photo) || '/images/waste/yellow-waste.jpg'}', '${r.request_number} - Waste Photograph')" title="Click to enlarge">
           </td>
           <td class="py-3 px-3 text-slate-500">${formatDate(r.created_at)}</td>
           <td class="py-3 px-3">
@@ -1129,7 +1168,7 @@
           <td class="py-2.5 px-3 text-slate-400">${idx + 1}</td>
           <td class="py-2.5 px-3 font-semibold text-indigo-700">${r.request_number}</td>
           <td class="py-2.5 px-3">
-            <img src="${r.waste_photo || '/images/waste/yellow-waste.jpg'}" class="w-9 h-9 rounded-lg object-cover border border-slate-200 cursor-pointer shadow-sm hover:scale-110 transition-transform" onclick="showImageModal('${r.waste_photo || '/images/waste/yellow-waste.jpg'}', '${r.request_number} - Waste Photograph')" title="Click to enlarge">
+            <img src="${resolveAssetUrl(r.waste_photo) || '/images/waste/yellow-waste.jpg'}" class="w-9 h-9 rounded-lg object-cover border border-slate-200 cursor-pointer shadow-sm hover:scale-110 transition-transform" onclick="showImageModal('${resolveAssetUrl(r.waste_photo) || '/images/waste/yellow-waste.jpg'}', '${r.request_number} - Waste Photograph')" title="Click to enlarge">
           </td>
           <td class="py-2.5 px-3 text-slate-500">${formatDate(r.created_at)}</td>
           <td class="py-2.5 px-3 text-slate-800">${r.department_name} (${r.room_number})</td>
@@ -1141,6 +1180,10 @@
           <td class="py-2.5 px-3">${getStageBadge(r.status)}</td>
         </tr>
       `).join('');
+    }
+
+    function handlePeriodChange() {
+      executeReportQuery();
     }
 
     function downloadExcelReport() {
@@ -1155,7 +1198,7 @@
       if (department_id !== 'all') params.append('department_id', department_id);
       if (status !== 'all') params.append('status', status);
 
-      const downloadUrl = `/api/reports/export/excel?${params.toString()}&token=${getToken()}`;
+      const downloadUrl = `${API_BASE}/reports/export/excel?${params.toString()}&token=${getToken()}`;
       window.open(downloadUrl, '_blank');
       showToast('Downloading Excel spreadsheet report...', 'info');
     }
@@ -1504,8 +1547,49 @@
       }
     }
 
-    function viewRequestAuditDetails(requestId) {
-      window.location.href = `/staff?viewRequest=${requestId}`;
+    async function viewRequestAuditDetails(requestId) {
+      const res = await apiRequest(`/requests/${requestId}`);
+      if (!res.success || !res.data) {
+        showToast('Unable to load request audit details', 'error');
+        return;
+      }
+
+      const r = res.data.request;
+      const history = res.data.history || [];
+
+      document.getElementById('audit-req-number').innerText = r.request_number;
+      document.getElementById('audit-req-status').innerHTML = getStageBadge(r.status);
+      document.getElementById('audit-req-subtitle').innerText = `${r.department_name || 'N/A'} | Room: ${r.room_number}`;
+      document.getElementById('audit-cat').innerText = `${(r.category_color || '').toUpperCase()} - ${r.category_name || ''}`;
+      document.getElementById('audit-weight').innerText = `${r.estimated_weight_kg} kg / ${r.actual_weight_kg ? r.actual_weight_kg + ' kg' : 'Pending'}`;
+      document.getElementById('audit-staff').innerText = r.staff_name || 'N/A';
+      document.getElementById('audit-collector').innerText = r.collector_name ? `${r.collector_name} (${r.vehicle_number || ''})` : 'Unassigned';
+      document.getElementById('audit-gps').innerText = `${r.collection_lat || 12.9716}, ${r.collection_lng || 77.5946}`;
+      document.getElementById('audit-facility').innerText = r.facility_name || 'Pending Transfer';
+
+      document.getElementById('audit-waste-photo').innerHTML = r.waste_photo
+        ? `<img src="${resolveAssetUrl(r.waste_photo)}" class="w-full h-full object-cover cursor-pointer" onclick="showImageModal('${resolveAssetUrl(r.waste_photo)}', '${r.request_number} - Waste Photo')">`
+        : '<span class="text-xs text-slate-400">No Photo</span>';
+
+      document.getElementById('audit-proof-photo').innerHTML = r.proof_photo
+        ? `<img src="${resolveAssetUrl(r.proof_photo)}" class="w-full h-full object-cover cursor-pointer" onclick="showImageModal('${resolveAssetUrl(r.proof_photo)}', '${r.request_number} - Collector Proof')">`
+        : '<span class="text-xs text-slate-400">Pending Proof Photo</span>';
+
+      document.getElementById('audit-history-list').innerHTML = history.map(h => `
+        <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+          <div class="flex items-center justify-between">
+            <strong class="text-slate-800">${h.status}</strong>
+            <span class="text-[10px] text-slate-400">${formatDate(h.created_at)}</span>
+          </div>
+          <p class="text-[11px] text-slate-600 mt-0.5">${h.notes || ''}</p>
+        </div>
+      `).join('');
+
+      document.getElementById('admin-audit-modal').classList.remove('hidden');
+    }
+
+    function closeAdminAuditModal() {
+      document.getElementById('admin-audit-modal').classList.add('hidden');
     }
 
     function showImageModal(src, title) {

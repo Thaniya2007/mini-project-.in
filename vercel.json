@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": null,
+  "installCommand": null,
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/staff", "destination": "/staff-dashboard.html" },
+    { "source": "/collector", "destination": "/collector-dashboard.html" },
+    { "source": "/admin", "destination": "/admin-dashboard.html" }
+  ]
+}
+

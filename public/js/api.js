@@ -1,5 +1,48 @@
 // Smart Hospital Waste Management System - Common Client Utilities
-const API_BASE = '/api';
+function getBackendOrigin() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const apiParam = params.get('api');
+    if (apiParam && /^https?:\/\//i.test(apiParam)) {
+      const cleaned = apiParam.replace(/\/+$/, '');
+      localStorage.setItem('bmw_backend_url', cleaned);
+      return cleaned;
+    }
+  } catch (e) {}
+
+  const configured = (window.APP_CONFIG && window.APP_CONFIG.RENDER_BACKEND_URL)
+    ? window.APP_CONFIG.RENDER_BACKEND_URL.trim().replace(/\/+$/, '')
+    : '';
+
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1') {
+    return '';
+  }
+
+  if (configured) {
+    return configured;
+  }
+
+  // Fallback for separate Vercel deployment if user connected via ?api=...
+  if (host.endsWith('.vercel.app')) {
+    const saved = localStorage.getItem('bmw_backend_url');
+    if (saved) return saved.replace(/\/+$/, '');
+  }
+
+  return '';
+}
+
+const BACKEND_ORIGIN = getBackendOrigin();
+const API_BASE = `${BACKEND_ORIGIN}/api`;
+
+function resolveAssetUrl(assetPath) {
+  if (!assetPath) return '';
+  if (/^(https?:|data:|blob:)/i.test(assetPath)) return assetPath;
+  if (assetPath.startsWith('/api/') || assetPath.startsWith('/uploads/')) {
+    return `${BACKEND_ORIGIN}${assetPath}`;
+  }
+  return assetPath;
+}
 
 // Auth State Management
 function getToken() {

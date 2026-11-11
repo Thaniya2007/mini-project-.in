@@ -615,6 +615,7 @@
     </div>
   </div>
 
+  <script src="/js/config.js"></script>
   <script src="/js/api.js"></script>
   <script>
     let currentUser = null;
@@ -761,7 +762,7 @@
     }
 
     // Locks Step 2 again if image is removed
-    function lockSegregation() {
+    function lockSegregation(silent = false) {
       imageUploaded = false;
       attachedSamplePhotoUrl = null;
 
@@ -783,7 +784,9 @@
       const aiBanner = document.getElementById('ai-detection-banner');
       aiBanner.classList.add('hidden');
 
-      showToast('Waste image removed. Segregation is locked until a photo is uploaded.', 'info');
+      if (!silent) {
+        showToast('Waste image removed. Segregation is locked until a photo is uploaded.', 'info');
+      }
     }
 
     function clearUploadImage() {
@@ -875,7 +878,7 @@
         <tr class="hover:bg-slate-50/80 transition-colors">
           <td class="py-3 px-3 font-semibold text-sky-700">${r.request_number}</td>
           <td class="py-3 px-3">
-            <img src="${r.waste_photo || '/images/waste/yellow-waste.jpg'}" class="w-10 h-10 rounded-lg object-cover border border-slate-200 cursor-pointer shadow-sm hover:scale-110 transition-transform" onclick="openLifecycleModal(${r.id})" title="View waste photo &amp; audit">
+            <img src="${resolveAssetUrl(r.waste_photo) || '/images/waste/yellow-waste.jpg'}" class="w-10 h-10 rounded-lg object-cover border border-slate-200 cursor-pointer shadow-sm hover:scale-110 transition-transform" onclick="openLifecycleModal(${r.id})" title="View waste photo &amp; audit">
           </td>
           <td class="py-3 px-3 text-slate-500">${formatDate(r.created_at)}</td>
           <td class="py-3 px-3">${getCategoryBadge(r.category_color, r.category_name)}</td>
@@ -942,7 +945,7 @@
       if (res.success) {
         showToast(res.message, 'success');
         document.getElementById('waste-request-form').reset();
-        lockSegregation();
+        lockSegregation(true);
         loadMyRequests();
       } else {
         showToast(res.message || 'Submission failed', 'error');
@@ -973,14 +976,14 @@
       // Photos
       const wasteBox = document.getElementById('modal-waste-photo-box');
       if (r.waste_photo) {
-        wasteBox.innerHTML = `<img src="${r.waste_photo}" class="w-full h-full object-cover">`;
+        wasteBox.innerHTML = `<img src="${resolveAssetUrl(r.waste_photo)}" class="w-full h-full object-cover">`;
       } else {
         wasteBox.innerHTML = `<span class="text-xs text-slate-400">No Photo Uploaded</span>`;
       }
 
       const proofBox = document.getElementById('modal-proof-photo-box');
       if (r.proof_photo) {
-        proofBox.innerHTML = `<img src="${r.proof_photo}" class="w-full h-full object-cover">`;
+        proofBox.innerHTML = `<img src="${resolveAssetUrl(r.proof_photo)}" class="w-full h-full object-cover">`;
       } else {
         proofBox.innerHTML = `<span class="text-xs text-slate-400">Pending Collector Proof</span>`;
       }
@@ -1045,7 +1048,7 @@
 
       await loadDepartments();
       await loadMyRequests();
-      lockSegregation();
+      lockSegregation(true);
     });
   </script>
 </body>

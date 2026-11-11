@@ -1,14 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const XLSX = require('xlsx');
-const { get, run, all } = require('../db/database');
-const { authenticateToken, requireRole } = require('../middleware/auth');
+const { CollectionRequest } = require('../db/models');
+const { enrichRequests } = require('../db/helpers');
+const { authenticateToken } = require('../middleware/auth');
 
-// Helper to build filtering SQL
-function buildReportQuery(filters) {
-  let whereClauses = [];
-  let params = [];
-
+/** Builds MongoDB filter object from report query parameters. */
+function buildMongoFilter(filters) {
+  const query = {};
   const {
     period,
     date_from,
@@ -20,113 +19,42 @@ function buildReportQuery(filters) {
     status
   } = filters;
 
-  // Period filtering
   const now = new Date();
   if (period === 'daily') {
-    whereClauses.push("DATE(cr.created_at) = DATE('now', 'localtime')");
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    query.created_at = { $gte: startOfDay };
   } else if (period === 'weekly') {
-    whereClauses.push("cr.created_at >= DATETIME('now', '-7 days', 'localtime')");
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    query.created_at = { $gte: weekAgo };
   } else if (period === 'monthly') {
-    whereClauses.push("cr.created_at >= DATETIME('now', '-30 days', 'localtime')");
-  } else {
-    if (date_from) {
-      whereClauses.push("DATE(cr.created_at) >= DATE(?)");
-      params.push(date_from);
-    }
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    query.created_at = { $gte: monthAgo };
+  } else if (date_from || date_to) {
+    query.created_at = {};
+    if (date_from) query.created_at.$gte = new Date(date_from);
     if (date_to) {
-      whereClauses.push("DATE(cr.created_at) <= DATE(?)");
-      params.push(date_to);
+      const end = new Date(date_to);
+      end.setHours(23, 59, 59, 999);
+      query.created_at.$lte = end;
     }
   }
 
-  if (category_id && category_id !== 'all') {
-    whereClauses.push("cr.category_id = ?");
-    params.push(parseInt(category_id));
-  }
+  if (category_id && category_id !== 'all') query.category_id = parseInt(category_id);
+  if (department_id && department_id !== 'all') query.department_id = parseInt(department_id);
+  if (staff_id && staff_id !== 'all') query.staff_id = parseInt(staff_id);
+  if (collector_id && collector_id !== 'all') query.collector_id = parseInt(collector_id);
+  if (status && status !== 'all') query.status = status;
 
-  if (department_id && department_id !== 'all') {
-    whereClauses.push("cr.department_id = ?");
-    params.push(parseInt(department_id));
-  }
-
-  if (staff_id && staff_id !== 'all') {
-    whereClauses.push("cr.staff_id = ?");
-    params.push(parseInt(staff_id));
-  }
-
-  if (collector_id && collector_id !== 'all') {
-    whereClauses.push("cr.collector_id = ?");
-    params.push(parseInt(collector_id));
-  }
-
-  if (status && status !== 'all') {
-    whereClauses.push("cr.status = ?");
-    params.push(status);
-  }
-
-  const whereSQL = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
-  const sql = `
-    SELECT 
-      cr.id,
-      cr.request_number,
-      cr.created_at,
-      cr.updated_at,
-      cr.room_number,
-      cr.priority,
-      cr.status,
-      cr.estimated_weight_kg,
-      COALESCE(cr.actual_weight_kg, cr.estimated_weight_kg) as quantity_kg,
-      cr.actual_weight_kg,
-      cr.waste_photo,
-      cr.proof_photo,
-      cr.collection_lat,
-      cr.collection_lng,
-      cr.collection_address,
-      cr.handover_notes,
-      c.id as category_id,
-      c.name as category_name,
-      c.code as category_code,
-      c.color as category_color,
-      c.hex_color as category_hex,
-      d.id as department_id,
-      d.name as department_name,
-      d.code as department_code,
-      d.floor as department_floor,
-      d.building as department_building,
-      stf.id as staff_id,
-      stf.staff_code,
-      u_staff.full_name as staff_name,
-      col.id as collector_id,
-      col.collector_code,
-      col.vehicle_number,
-      u_col.full_name as collector_name,
-      fac.name as facility_name,
-      fac.code as facility_code,
-      fac.license_number as facility_license,
-      fac.address as facility_address
-    FROM collection_requests cr
-    LEFT JOIN waste_categories c ON cr.category_id = c.id
-    LEFT JOIN departments d ON cr.department_id = d.id
-    LEFT JOIN staff stf ON cr.staff_id = stf.id
-    LEFT JOIN users u_staff ON stf.user_id = u_staff.id
-    LEFT JOIN collectors col ON cr.collector_id = col.id
-    LEFT JOIN users u_col ON col.user_id = u_col.id
-    LEFT JOIN disposal_facilities fac ON cr.disposal_facility_id = fac.id
-    ${whereSQL}
-    ORDER BY cr.created_at DESC
-  `;
-
-  return { sql, params };
+  return query;
 }
 
 // GET /api/reports/query - Filtered report records
 router.get('/query', authenticateToken, async (req, res) => {
   try {
-    const { sql, params } = buildReportQuery(req.query);
-    const records = await all(sql, params);
+    const filter = buildMongoFilter(req.query);
+    const raw = await CollectionRequest.find(filter).sort({ created_at: -1 }).lean();
+    const records = await enrichRequests(raw);
 
-    // Compute aggregates
     let totalWeight = 0;
     let completedCount = 0;
     let pendingCount = 0;
@@ -142,10 +70,12 @@ router.get('/query', authenticateToken, async (req, res) => {
         pendingCount++;
       }
 
-      // Category breakdown
-      categoryBreakdown[r.category_color] = (categoryBreakdown[r.category_color] || 0) + w;
-      // Department breakdown
-      departmentBreakdown[r.department_name] = (departmentBreakdown[r.department_name] || 0) + w;
+      if (r.category_color) {
+        categoryBreakdown[r.category_color] = (categoryBreakdown[r.category_color] || 0) + w;
+      }
+      if (r.department_name) {
+        departmentBreakdown[r.department_name] = (departmentBreakdown[r.department_name] || 0) + w;
+      }
     });
 
     res.json({
@@ -168,19 +98,19 @@ router.get('/query', authenticateToken, async (req, res) => {
 // GET /api/reports/export/excel - Generates and downloads Excel spreadsheet (.xlsx)
 router.get('/export/excel', authenticateToken, async (req, res) => {
   try {
-    const { sql, params } = buildReportQuery(req.query);
-    const records = await all(sql, params);
+    const filter = buildMongoFilter(req.query);
+    const raw = await CollectionRequest.find(filter).sort({ created_at: -1 }).lean();
+    const records = await enrichRequests(raw);
 
-    // Transform into clean tabular rows
     const excelRows = records.map((r, idx) => ({
       'SL No': idx + 1,
       'Request Code': r.request_number,
       'Date & Time': new Date(r.created_at).toLocaleString(),
-      'Hospital Department': r.department_name,
-      'Department Code': r.department_code,
+      'Hospital Department': r.department_name || 'N/A',
+      'Department Code': r.department_code || 'N/A',
       'Room / Ward': r.room_number,
-      'Waste Category': r.category_name,
-      'Bin Color': r.category_color.toUpperCase(),
+      'Waste Category': r.category_name || 'N/A',
+      'Bin Color': (r.category_color || 'N/A').toUpperCase(),
       'Est. Quantity (kg)': r.estimated_weight_kg,
       'Actual Quantity (kg)': r.actual_weight_kg || r.estimated_weight_kg,
       'Priority': r.priority,
@@ -197,39 +127,18 @@ router.get('/export/excel', authenticateToken, async (req, res) => {
       'Handover Notes / Verification': r.handover_notes || 'None'
     }));
 
-    // Create workbook
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(excelRows);
 
-    // Auto-fit column widths
-    const colWidths = [
-      { wch: 6 },  // SL No
-      { wch: 18 }, // Request Code
-      { wch: 20 }, // Date & Time
-      { wch: 25 }, // Department
-      { wch: 15 }, // Dept Code
-      { wch: 20 }, // Room
-      { wch: 25 }, // Category
-      { wch: 12 }, // Bin Color
-      { wch: 14 }, // Est Qty
-      { wch: 14 }, // Act Qty
-      { wch: 12 }, // Priority
-      { wch: 25 }, // Status
-      { wch: 22 }, // Staff
-      { wch: 14 }, // Staff Code
-      { wch: 22 }, // Collector
-      { wch: 14 }, // Collector Code
-      { wch: 16 }, // Vehicle
-      { wch: 22 }, // Coordinates
-      { wch: 30 }, // Location
-      { wch: 35 }, // Facility
-      { wch: 22 }, // License
-      { wch: 35 }  // Notes
+    ws['!cols'] = [
+      { wch: 6 }, { wch: 18 }, { wch: 20 }, { wch: 25 }, { wch: 15 },
+      { wch: 20 }, { wch: 25 }, { wch: 12 }, { wch: 14 }, { wch: 14 },
+      { wch: 12 }, { wch: 25 }, { wch: 22 }, { wch: 14 }, { wch: 22 },
+      { wch: 14 }, { wch: 16 }, { wch: 22 }, { wch: 30 }, { wch: 35 },
+      { wch: 22 }, { wch: 35 }
     ];
-    ws['!cols'] = colWidths;
 
     XLSX.utils.book_append_sheet(wb, ws, 'BMW Collection Report');
-
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
     const filename = `Hospital_Biomedical_Waste_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
@@ -243,4 +152,3 @@ router.get('/export/excel', authenticateToken, async (req, res) => {
 });
 
 module.exports = router;
-

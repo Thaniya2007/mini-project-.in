@@ -97,11 +97,11 @@ A modern, professional, and fully functional healthcare platform designed to **c
 
 ---
 
-## 🗄️ Database Architecture (SQLite)
+## 🗄️ Database Architecture (MongoDB / Mongoose)
 
-The system automatically initializes and seeds an SQLite database (`data/hospital_waste.db`) containing all 11 required relational tables:
+The system automatically initializes and seeds MongoDB collections (`db/models.js` & `db/database.js`) containing all 11 core entities plus persistent uploaded image storage:
 1. `users`: Credentials, hashed passwords (`bcryptjs`), roles (`staff`, `collector`, `admin`), profile data.
-2. `staff`: Staff codes, department foreign key, designation, badge number.
+2. `staff`: Staff codes, department reference, designation, badge number.
 3. `collectors`: Collector codes, vehicle numbers, vehicle types, assigned zone, live lat/lng, active state.
 4. `departments`: Hospital wards/units, floor, building, department head, default GPS.
 5. `waste_categories`: Yellow, Red, White, Blue categories, hex colors, segregation rules, instructions.
@@ -109,28 +109,35 @@ The system automatically initializes and seeds an SQLite database (`data/hospita
 7. `collection_requests`: Unique tracking numbers, department, room, estimated & actual weights, photos, priority, status (8 stages), collector and facility relations, GPS coordinates.
 8. `gps_locations`: Waypoint coordinates, collector telemetry, accuracy, speeds, timestamps.
 9. `collection_history`: Complete audit log with status transitions, actor IDs, notes, and coordinates.
-10. `reports`: Generated manifest records, filters, summary JSON, timestamps.
+10. `reports`: Generated manifest records, filters, summary metadata, timestamps.
 11. `disposal_facilities`: Licensed CBWTF facilities, addresses, contacts, licenses, capacities.
+12. `uploaded_files`: Uploaded waste and proof photographs stored persistently in MongoDB.
 
 ---
 
-## 🚀 How to Run the Application
+## 🚀 How to Run & Host (Vercel + Render + MongoDB Atlas)
 
 ### 1. Prerequisites
-- **Node.js** (v18 or higher; tested on Node.js v24)
-- **npm** (comes with Node.js)
+- **Node.js** (v20.17.0 or higher; tested on Node.js v24)
+- **MongoDB Atlas** free cluster URI (or local MongoDB instance)
 
-### 2. Install Dependencies & Start the Server
-From the project folder, run:
+### 2. Local Setup
+1. Copy `.env.example` to `.env` and set `MONGODB_URI` to your MongoDB Atlas connection string.
+2. Install dependencies and start the server:
 ```bash
 npm install
 node server.js
 ```
 
-### 3. Open in Browser
+### 3. Open Locally in Browser
 - **Landing Page**: [http://localhost:3000](http://localhost:3000)
 - **Hospital Staff Dashboard**: [http://localhost:3000/staff](http://localhost:3000/staff)
 - **Waste Collector Portal**: [http://localhost:3000/collector](http://localhost:3000/collector)
 - **Administrator Console**: [http://localhost:3000/admin](http://localhost:3000/admin)
 - **API Health Check**: [http://localhost:3000/api/health](http://localhost:3000/api/health)
+
+### 4. Production Deployment (MongoDB Atlas + Render Backend + Vercel Frontend)
+1. **MongoDB Atlas**: Create a free cluster, database user, allow network access (`0.0.0.0/0`), and copy your `MONGODB_URI`.
+2. **Render (Backend)**: Deploy this repository using `render.yaml` (or Web Service: `npm install` / `npm start`) and add `MONGODB_URI` in Render Environment Variables.
+3. **Vercel (Frontend)**: Set `RENDER_BACKEND_URL` in `public/js/config.js` to your Render backend URL, push to GitHub, and deploy on Vercel (`vercel.json` serves `public/` with `/staff`, `/collector`, and `/admin` routes).
 

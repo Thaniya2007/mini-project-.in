@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { get, run, all } = require('../db/database');
+const { User, Staff, Department, Collector, getNextId } = require('../db/models');
 const { authenticateToken, JWT_SECRET } = require('../middleware/auth');
 
 // POST /api/auth/login
@@ -14,11 +14,13 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide email/username and password.' });
     }
 
-    // Lookup user by email or username
-    const user = await get(
-      'SELECT * FROM users WHERE email = ? OR username = ?',
-      [identifier.trim().toLowerCase(), identifier.trim()]
-    );
+    const cleanId = identifier.trim();
+    const user = await User.findOne({
+      $or: [
+        { email: cleanId.toLowerCase() },
+        { username: cleanId }
+      ]
+    }).lean();
 
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid credentials. User not found.' });
@@ -28,7 +30,6 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ success: false, message: 'Your account has been deactivated. Contact Admin.' });
     }
 
-    // Role check if specified
     if (expectedRole && user.role !== expectedRole) {
       return res.status(403).json({
         success: false,
@@ -41,26 +42,27 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid password. Please check your credentials.' });
     }
 
-    // Create JWT token
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role, email: user.email },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
 
-    // Fetch related profile details
     let profileData = {};
     if (user.role === 'staff') {
-      profileData = await get(`
-        SELECT s.*, d.name as department_name, d.code as department_code, d.floor, d.building
-        FROM staff s
-        LEFT JOIN departments d ON s.department_id = d.id
-        WHERE s.user_id = ?
-      `, [user.id]) || {};
+      const staff = await Staff.findOne({ user_id: user.id }).lean();
+      if (staff) {
+        const dept = await Department.findOne({ id: staff.department_id }).lean();
+        profileData = {
+          ...staff,
+          department_name: dept ? dept.name : null,
+          department_code: dept ? dept.code : null,
+          floor: dept ? dept.floor : null,
+          building: dept ? dept.building : null
+        };
+      }
     } else if (user.role === 'collector') {
-      profileData = await get(`
-        SELECT * FROM collectors WHERE user_id = ?
-      `, [user.id]) || {};
+      profileData = await Collector.findOne({ user_id: user.id }).lean() || {};
     }
 
     return res.json({
@@ -96,33 +98,53 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid role. Must be staff, collector, or admin.' });
     }
 
-    // Check existing
-    const existing = await get('SELECT id FROM users WHERE email = ? OR username = ?', [email.trim().toLowerCase(), username.trim()]);
+    const existing = await User.findOne({
+      $or: [
+        { email: email.trim().toLowerCase() },
+        { username: username.trim() }
+      ]
+    }).lean();
+
     if (existing) {
       return res.status(400).json({ success: false, message: 'A user with this email or username already exists.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const userResult = await run(`
-      INSERT INTO users (username, email, password, role, full_name, phone)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [username.trim(), email.trim().toLowerCase(), hashedPassword, role, full_name.trim(), phone || '']);
+    const userId = await getNextId('users');
+    await User.create({
+      id: userId,
+      username: username.trim(),
+      email: email.trim().toLowerCase(),
+      password: hashedPassword,
+      role,
+      full_name: full_name.trim(),
+      phone: phone || ''
+    });
 
-    const userId = userResult.id;
-
-    // Role specific record creation
     if (role === 'staff') {
+      const staffId = await getNextId('staff');
       const staffCode = 'STF-' + Math.floor(1000 + Math.random() * 9000);
-      await run(`
-        INSERT INTO staff (user_id, staff_code, department_id, designation, badge_number)
-        VALUES (?, ?, ?, ?, ?)
-      `, [userId, staffCode, department_id || 1, designation || 'Nursing Officer', 'BADGE-' + Math.floor(100 + Math.random() * 900)]);
+      await Staff.create({
+        id: staffId,
+        user_id: userId,
+        staff_code: staffCode,
+        department_id: parseInt(department_id) || 1,
+        designation: designation || 'Nursing Officer',
+        badge_number: 'BADGE-' + Math.floor(100 + Math.random() * 900)
+      });
     } else if (role === 'collector') {
+      const colId = await getNextId('collectors');
       const collectorCode = 'COL-' + Math.floor(100 + Math.random() * 900);
-      await run(`
-        INSERT INTO collectors (user_id, collector_code, vehicle_number, assigned_zone, current_lat, current_lng, is_active)
-        VALUES (?, ?, ?, ?, 12.9716, 77.5946, 1)
-      `, [userId, collectorCode, vehicle_number || 'KA-05-BMW-00' + Math.floor(10 + Math.random() * 89), assigned_zone || 'Central Hospital Zone']);
+      await Collector.create({
+        id: colId,
+        user_id: userId,
+        collector_code: collectorCode,
+        vehicle_number: vehicle_number || 'KA-05-BMW-00' + Math.floor(10 + Math.random() * 89),
+        assigned_zone: assigned_zone || 'Central Hospital Zone',
+        current_lat: 12.9716,
+        current_lng: 77.5946,
+        is_active: 1
+      });
     }
 
     res.status(201).json({
@@ -146,4 +168,3 @@ router.get('/me', authenticateToken, async (req, res) => {
 });
 
 module.exports = router;
-

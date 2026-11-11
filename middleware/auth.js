@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { get } = require('../db/database');
+const { User, Staff, Department, Collector } = require('../db/models');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'smart-hospital-biomedical-waste-mgmt-secret-2026';
 
@@ -20,10 +20,11 @@ async function authenticateToken(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    
-    // Fetch user details from database to ensure account is active
-    const user = await get('SELECT id, username, email, role, full_name, phone, status FROM users WHERE id = ?', [decoded.id]);
-    
+
+    const user = await User.findOne({ id: decoded.id })
+      .select('id username email role full_name phone status -_id')
+      .lean();
+
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid token. User no longer exists.' });
     }
@@ -34,23 +35,34 @@ async function authenticateToken(req, res, next) {
 
     req.user = user;
 
-    // Attach staff or collector metadata if applicable
     if (user.role === 'staff') {
-      const staffInfo = await get(`
-        SELECT s.id as staff_id, s.staff_code, s.department_id, s.designation, s.badge_number,
-               d.name as department_name, d.code as department_code
-        FROM staff s
-        LEFT JOIN departments d ON s.department_id = d.id
-        WHERE s.user_id = ?
-      `, [user.id]);
-      req.staff = staffInfo;
+      const staff = await Staff.findOne({ user_id: user.id }).lean();
+      if (staff) {
+        const dept = await Department.findOne({ id: staff.department_id }).lean();
+        req.staff = {
+          staff_id: staff.id,
+          staff_code: staff.staff_code,
+          department_id: staff.department_id,
+          designation: staff.designation,
+          badge_number: staff.badge_number,
+          department_name: dept ? dept.name : null,
+          department_code: dept ? dept.code : null
+        };
+      }
     } else if (user.role === 'collector') {
-      const collectorInfo = await get(`
-        SELECT c.id as collector_id, c.collector_code, c.vehicle_number, c.vehicle_type, c.assigned_zone, c.current_lat, c.current_lng, c.is_active
-        FROM collectors c
-        WHERE c.user_id = ?
-      `, [user.id]);
-      req.collector = collectorInfo;
+      const collector = await Collector.findOne({ user_id: user.id }).lean();
+      if (collector) {
+        req.collector = {
+          collector_id: collector.id,
+          collector_code: collector.collector_code,
+          vehicle_number: collector.vehicle_number,
+          vehicle_type: collector.vehicle_type,
+          assigned_zone: collector.assigned_zone,
+          current_lat: collector.current_lat,
+          current_lng: collector.current_lng,
+          is_active: collector.is_active
+        };
+      }
     }
 
     next();
@@ -86,4 +98,3 @@ module.exports = {
   requireRole,
   JWT_SECRET
 };
-

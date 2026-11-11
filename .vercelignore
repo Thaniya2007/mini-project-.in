@@ -1,0 +1,16 @@
+node_modules
+data
+db
+middleware
+routes
+utils
+uploads
+server.js
+package.json
+package-lock.json
+render.yaml
+*.zip
+.env
+.env.*
+.git
+
