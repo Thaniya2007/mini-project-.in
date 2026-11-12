@@ -1,5 +1,9 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const net = require('net');
+const fs = require('fs');
+const path = require('path');
+const { spawn } = require('child_process');
 const {
   User,
   Department,
@@ -15,8 +19,86 @@ const {
   getNextId
 } = require('./models');
 
+let localMongodProc = null;
+
+function isPortListening(port = 27017, host = '127.0.0.1', timeout = 400) {
+  return new Promise(resolve => {
+    const socket = new net.Socket();
+    socket.setTimeout(timeout);
+    socket.once('connect', () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once('timeout', () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.once('error', () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.connect(port, host);
+  });
+}
+
+function findLocalMongodBinary() {
+  const userProfile = process.env.USERPROFILE || process.env.HOME || '';
+  const cacheDir = path.join(userProfile, '.cache', 'mongodb-binaries');
+  if (fs.existsSync(cacheDir)) {
+    try {
+      const files = fs.readdirSync(cacheDir);
+      const exe = files.find(f => f.startsWith('mongod') && (f.endsWith('.exe') || !f.includes('.')));
+      if (exe) return path.join(cacheDir, exe);
+    } catch {}
+  }
+  return null;
+}
+
+async function ensureLocalMongoRunning() {
+  if (await isPortListening(27017)) return true;
+
+  const binary = findLocalMongodBinary();
+  if (!binary) return false;
+
+  const userProfile = process.env.USERPROFILE || process.env.HOME || '';
+  const dataDir = path.join(userProfile, '.cache', 'mongodb-data');
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+
+  console.log(`[local-mongo] Starting local mongod (${path.basename(binary)})...`);
+  localMongodProc = spawn(binary, ['--dbpath', dataDir, '--port', '27017', '--bind_ip', '127.0.0.1'], {
+    stdio: 'ignore'
+  });
+
+  const cleanup = () => {
+    if (localMongodProc && !localMongodProc.killed) {
+      try { localMongodProc.kill(); } catch {}
+      localMongodProc = null;
+    }
+  };
+
+  process.once('exit', cleanup);
+  process.once('SIGINT', cleanup);
+  process.once('SIGTERM', cleanup);
+
+  const start = Date.now();
+  while (Date.now() - start < 10000) {
+    await new Promise(r => setTimeout(r, 300));
+    if (await isPortListening(27017)) {
+      console.log('[local-mongo] Local MongoDB is online at 127.0.0.1:27017.');
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Connects to MongoDB and initializes + seeds baseline hospital biomedical waste data. */
 async function initDatabase(uriOverride) {
+  if (!process.env.MONGODB_URI && !uriOverride) {
+    await ensureLocalMongoRunning();
+  }
+
   const mongoUri = uriOverride || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/hospital_waste';
 
   if (!process.env.MONGODB_URI && !uriOverride) {
